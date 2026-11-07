@@ -23,7 +23,7 @@ def test_video_classifier_embedded_translations():
         "Action",
         "Segment {n}",
     ]
-    for language in ("en_US", "zh_CN", "ja_JP", "ko_KR"):
+    for language in ("en_US", "zh_CN", "ja_JP", "ko_KR", "sl_SI"):
         translator = QTranslator()
         assert translator.load(f":/languages/translations/{language}.qm")
         for source in sources:

@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import base64
 import json
 import os
@@ -52,7 +54,9 @@ class AIWorkerThread(QThread):
                 return
 
             if not models_config or not providers_config:
-                self.finished.emit("", False, "Configuration files not found")
+                self.finished.emit(
+                    "", False, self.tr("Configuration files not found")
+                )
                 return
 
             settings = models_config.get("settings", {})
@@ -66,7 +70,9 @@ class AIWorkerThread(QThread):
                 self.finished.emit(
                     "",
                     False,
-                    "Please configure model and provider in Chatbot (Ctrl+0)",
+                    self.tr(
+                        "Please configure model and provider in Chatbot (Ctrl+0)"
+                    ),
                 )
                 return
 
@@ -78,7 +84,10 @@ class AIWorkerThread(QThread):
                 self.finished.emit(
                     "",
                     False,
-                    f"Please configure API key for {provider} in Chatbot (Ctrl+0)",
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Please configure API key for {0} in Chatbot (Ctrl+0)",
+                    ).format(provider),
                 )
                 return
 
@@ -123,7 +132,13 @@ class AIWorkerThread(QThread):
                 )
         except Exception as e:
             if not self._cancel_requested():
-                self.finished.emit("", False, f"API call failed: {str(e)}")
+                self.finished.emit(
+                    "",
+                    False,
+                    QCoreApplication.translate(
+                        "Messages", "API call failed: {0}"
+                    ).format(str(e)),
+                )
 
     def process_special_references(self, prompt):
         if "@text" in prompt and self.current_text:
@@ -159,7 +174,11 @@ class AIWorkerThread(QThread):
 
         if "@image" in prompt:
             if not self.image_path or not os.path.exists(self.image_path):
-                raise Exception("No image available for @image reference")
+                raise Exception(
+                    QCoreApplication.translate(
+                        "Messages", "No image available for @image reference"
+                    )
+                )
 
             # Replace @image with <image> for API compatibility
             prompt = re.sub(r"@image\s*", "<image> ", prompt).strip()

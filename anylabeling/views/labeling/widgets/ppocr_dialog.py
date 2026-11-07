@@ -6,6 +6,7 @@ import tempfile
 import threading
 import zipfile
 
+from PyQt6.QtCore import QCoreApplication
 from PyQt6.QtCore import QSize, QThread, QTimer, Qt
 from PyQt6.QtGui import (
     QColor,
@@ -1586,7 +1587,9 @@ class PPOCRDialog(QDialog):
                         min(rgba_canvas.width, max(xs)),
                         min(rgba_canvas.height, max(ys)),
                     ),
-                    block.display_label or block.label,
+                    QCoreApplication.translate(
+                        "Messages", block.display_label or block.label
+                    ),
                     (red, green, blue),
                 )
             )

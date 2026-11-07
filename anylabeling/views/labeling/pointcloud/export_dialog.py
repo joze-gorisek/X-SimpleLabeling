@@ -59,7 +59,7 @@ class PointCloudExportDialog(QtWidgets.QDialog):
         self.formats = QtWidgets.QButtonGroup(self)
         self.format_buttons = {}
         for column, (key, title) in enumerate(EXPORT_FORMATS.items()):
-            button = QtWidgets.QRadioButton(title)
+            button = QtWidgets.QRadioButton(self.tr(title))
             button.setToolTip(
                 self.tr(
                     "Export 3D cuboids from all frames. Point segmentation is not included."

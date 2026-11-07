@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import os
 import os.path as osp
 import cv2
@@ -50,8 +52,10 @@ def rle_to_polygons(rle: Dict[str, Any]) -> List[List[float]]:
         from pycocotools import mask as mask_utils
     except ImportError as e:
         raise ImportError(
-            "pycocotools is required to import COCO RLE segmentations. "
-            "Please run 'pip install pycocotools' first."
+            QCoreApplication.translate(
+                "Messages",
+                "pycocotools is required to import COCO RLE segmentations. Please run 'pip install pycocotools' first.",
+            )
         ) from e
 
     size = rle.get("size")
@@ -60,7 +64,11 @@ def rle_to_polygons(rle: Dict[str, Any]) -> List[List[float]]:
         or len(size) != 2
         or any(type(value) is not int or value <= 0 for value in size)
     ):
-        raise ValueError("RLE size must contain positive height and width.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "RLE size must contain positive height and width."
+            )
+        )
     height, width = size
     counts = rle.get("counts")
     if isinstance(counts, list):
@@ -69,13 +77,20 @@ def rle_to_polygons(rle: Dict[str, Any]) -> List[List[float]]:
             or sum(counts) != height * width
         ):
             raise ValueError(
-                "RLE counts must cover exactly height * width pixels."
+                QCoreApplication.translate(
+                    "Messages",
+                    "RLE counts must cover exactly height * width pixels.",
+                )
             )
         rle = mask_utils.frPyObjects(rle, height, width)
     elif isinstance(counts, str):
         rle = dict(rle, counts=rle["counts"].encode("utf-8"))
     elif not isinstance(counts, bytes):
-        raise ValueError("RLE counts must be a list or an encoded string.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "RLE counts must be a list or an encoded string."
+            )
+        )
 
     mask = mask_utils.decode(rle)
     if mask.ndim == 3:
@@ -96,8 +111,10 @@ def rle_to_polygons(rle: Dict[str, Any]) -> List[List[float]]:
         cv2.fillPoly(restored, [contour], 1)
     if not np.array_equal(mask, restored):
         raise ValueError(
-            "RLE segmentation cannot be represented losslessly as polygons "
-            "(holes or thin regions). Import cancelled; no files were written."
+            QCoreApplication.translate(
+                "Messages",
+                "RLE segmentation cannot be represented losslessly as polygons (holes or thin regions). Import cancelled; no files were written.",
+            )
         )
     return polygons
 
@@ -123,13 +140,19 @@ class LabelConverter:
                 data = yaml.safe_load(f) or {}
                 if not isinstance(data, dict):
                     raise ValueError(
-                        "Invalid pose config: root node must be a mapping."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "Invalid pose config: root node must be a mapping.",
+                        )
                     )
 
                 classes = data.get("classes")
                 if not isinstance(classes, dict) or not classes:
                     raise ValueError(
-                        "Invalid pose config: missing or invalid 'classes' mapping."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "Invalid pose config: missing or invalid 'classes' mapping.",
+                        )
                     )
 
                 self.has_visible = data.get("has_visible", True)
@@ -751,7 +774,9 @@ class LabelConverter:
         size_height = root.find("size/height")
         if size_width is None or size_height is None:
             raise ValueError(
-                f"Missing <size> element in VOC XML: {input_file}"
+                QCoreApplication.translate(
+                    "Messages", "Missing <size> element in VOC XML: {0}"
+                ).format(input_file)
             )
         image_width = int(size_width.text)
         image_height = int(size_height.text)
@@ -772,7 +797,11 @@ class LabelConverter:
         def get_coordinate(obj, path):
             element = obj.find(path)
             if element is None or element.text is None:
-                raise ValueError(f"missing <{path}>")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "missing <{0}>"
+                    ).format(path)
+                )
             return float(element.text)
 
         for object_index, obj in enumerate(root.findall("object"), 1):
@@ -810,9 +839,17 @@ class LabelConverter:
                     ]
                     shape_type = "rectangle"
                 else:
-                    raise ValueError(f"missing geometry for mode {mode!r}")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "missing geometry for mode {0!r}"
+                        ).format(mode)
+                    )
                 if not points:
-                    raise ValueError("geometry has no points")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "geometry has no points"
+                        )
+                    )
                 difficult_value = bool(int(difficult))
             except (AttributeError, TypeError, ValueError) as e:
                 logger.warning(
@@ -909,13 +946,18 @@ class LabelConverter:
                             image["imageWidth"],
                         ]:
                             raise ValueError(
-                                "RLE size does not match the image."
+                                QCoreApplication.translate(
+                                    "Messages",
+                                    "RLE size does not match the image.",
+                                )
                             )
                         segmentations_list = rle_to_polygons(segmentation_data)
                     except (ImportError, ValueError, TypeError, KeyError) as e:
                         raise ValueError(
-                            f"Cannot import COCO annotation {dic_info.get('id')} "
-                            f"for image {image_id}: {e}"
+                            QCoreApplication.translate(
+                                "Messages",
+                                "Cannot import COCO annotation {0} for image {1}: {2}",
+                            ).format(dic_info.get("id"), image_id, e)
                         ) from e
                 else:
                     for segmentation in segmentation_data:
@@ -1204,7 +1246,9 @@ class LabelConverter:
                 f"Missing required keys in uploaded file: {missing_keys}"
             )
             raise ValueError(
-                f"Missing required keys in uploaded file: {missing_keys}"
+                QCoreApplication.translate(
+                    "Messages", "Missing required keys in uploaded file: {0}"
+                ).format(missing_keys)
             )
         indexes = mmgd_data["labels"]
         scores = mmgd_data["scores"]
@@ -1438,7 +1482,9 @@ class LabelConverter:
                             f"group_id is None for {shape} in {input_file}."
                         )
                         raise PoseGroupError(
-                            f"group_id is None for {shape} in {input_file}."
+                            QCoreApplication.translate(
+                                "Messages", "group_id is None for {0} in {1}."
+                            ).format(shape, input_file)
                         )
                     label = shape["label"]
                     points = self.clamp_points(
@@ -1448,9 +1494,10 @@ class LabelConverter:
                         group_id = int(shape["group_id"])
                     except (TypeError, ValueError) as e:
                         raise PoseGroupError(
-                            f"Invalid group_id {shape['group_id']!r} for pose "
-                            f"annotation in {input_file}. Group IDs must be "
-                            f"integers."
+                            QCoreApplication.translate(
+                                "Messages",
+                                "Invalid group_id {0!r} for pose annotation in {1}. Group IDs must be integers.",
+                            ).format(shape["group_id"], input_file)
                         ) from e
                     if group_id not in pose_data:
                         pose_data[group_id] = {
@@ -1480,17 +1527,18 @@ class LabelConverter:
                 for group_id, data in pose_data.items():
                     if "box_label" not in data or not data.get("rectangle"):
                         raise PoseGroupError(
-                            f"Missing rectangle/box_label for pose "
-                            f"group_id={group_id} in {input_file}. "
-                            f"Each pose instance needs a rectangle with "
-                            f"the class label."
+                            QCoreApplication.translate(
+                                "Messages",
+                                "Missing rectangle/box_label for pose group_id={0} in {1}. Each pose instance needs a rectangle with the class label.",
+                            ).format(group_id, input_file)
                         )
                     box_label = data["box_label"]
                     if box_label not in classes:
                         raise PoseClassError(
-                            f"Unknown box_label '{box_label}' for pose "
-                            f"group_id={group_id} in {input_file}. "
-                            f"Expected one of: {classes}"
+                            QCoreApplication.translate(
+                                "Messages",
+                                "Unknown box_label '{0}' for pose group_id={1} in {2}. Expected one of: {3}",
+                            ).format(box_label, group_id, input_file, classes)
                         )
                     box_index = classes.index(box_label)
                     kpt_names = self.pose_classes[box_label]
@@ -1929,7 +1977,11 @@ class LabelConverter:
             )
             cv2.imencode(".png", empty_mask)[1].tofile(output_file)
         else:
-            raise ValueError("Invalid output format specified")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Invalid output format specified"
+                )
+            )
 
     def custom_image_to_empty_mask(
         self,
@@ -1979,20 +2031,36 @@ class LabelConverter:
 
         output_format = mapping_table["type"]
         if output_format not in ["grayscale", "rgb"]:
-            raise ValueError("Invalid output format specified")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Invalid output format specified"
+                )
+            )
         mapping_color = mapping_table["colors"]
         label_priority = mapping_table.get("label_priority", {})
         if not isinstance(label_priority, dict):
-            raise ValueError("label_priority must be an object")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "label_priority must be an object"
+                )
+            )
         unknown_labels = set(label_priority) - set(mapping_color)
         if unknown_labels:
             labels = ", ".join(sorted(unknown_labels))
-            raise ValueError(f"Unknown labels in label_priority: {labels}")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unknown labels in label_priority: {0}"
+                ).format(labels)
+            )
         if any(
             isinstance(priority, bool) or not isinstance(priority, int)
             for priority in label_priority.values()
         ):
-            raise ValueError("label_priority values must be integers")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "label_priority values must be integers"
+                )
+            )
         polygons.sort(
             key=lambda item: (
                 label_priority.get(item["label"], 0),

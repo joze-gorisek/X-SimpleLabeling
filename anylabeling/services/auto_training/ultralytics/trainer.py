@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import os
 import signal
@@ -135,7 +137,11 @@ class TrainingManager:
                 else handle_training_worker_output
             )
             if self.training_process.stdout is None:
-                raise RuntimeError("Training process output is unavailable")
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        "Messages", "Training process output is unavailable"
+                    )
+                )
 
             while True:
                 if self.stop_event.is_set():
@@ -171,7 +177,10 @@ class TrainingManager:
                     "training_error",
                     {
                         "error": (
-                            f"Training process exited with code {return_code}"
+                            QCoreApplication.translate(
+                                "Messages",
+                                "Training process exited with code {0}",
+                            ).format(return_code)
                         )
                     },
                 )
@@ -202,7 +211,9 @@ class TrainingManager:
 
     def start_training(self, train_args: Dict) -> Tuple[bool, str]:
         if self.is_training:
-            return False, "Training is already in progress"
+            return False, QCoreApplication.translate(
+                "Messages", "Training is already in progress"
+            )
 
         try:
             self.total_epochs = train_args.get("epochs", 100)
@@ -223,11 +234,15 @@ class TrainingManager:
             config_thread.daemon = True
             config_thread.start()
 
-            return True, "Training started successfully"
+            return True, QCoreApplication.translate(
+                "Messages", "Training started successfully"
+            )
 
         except Exception as e:
             self.is_training = False
-            return False, f"Failed to start training: {str(e)}"
+            return False, QCoreApplication.translate(
+                "Messages", "Failed to start training: {0}"
+            ).format(str(e))
 
     def start_training_mp(self, train_args: Dict) -> Tuple[bool, str]:
         return self.start_training(train_args)

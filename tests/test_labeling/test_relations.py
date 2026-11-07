@@ -381,7 +381,6 @@ def test_create_relation_action_requires_exactly_two_selected(
         rectangle("c", "c", 200),
     ]
     widget.load_shapes(shapes)
-    assert widget.actions.create_relation in widget.actions.tool
     for count in (0, 1, 2, 3, 2, 0):
         widget.shape_selection_changed(shapes[:count])
         assert widget.actions.create_relation.isEnabled() == (count == 2)

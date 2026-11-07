@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import os
 import os.path as osp
@@ -48,7 +50,11 @@ __all__ = ["save_visualization"]
 
 def save_visualization(self, export_type: Literal["image", "video"]):
     if export_type not in ("image", "video"):
-        raise ValueError(f"Unexpected export_type: {export_type}")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Unexpected export_type: {0}"
+            ).format(export_type)
+        )
     if not _check_filename_exist(self):
         return
 
@@ -400,7 +406,11 @@ def _export_current_image(self, save_path, options):
     try:
         image = _render_current_image(self, options)
         if not image.save(save_path, "PNG"):
-            raise RuntimeError(f"Failed to save image: {save_path}")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "Failed to save image: {0}"
+                ).format(save_path)
+            )
     except Exception as e:
         logger.error(
             f"Error occurred while exporting visualization image: {e}"
@@ -482,7 +492,9 @@ def _export_image_zip(self, save_path, image_files, options):
 def _render_current_image(self, options):
     pixmap = self.canvas.pixmap
     if pixmap is None or pixmap.isNull():
-        raise RuntimeError("Current image is empty")
+        raise RuntimeError(
+            QCoreApplication.translate("Messages", "Current image is empty")
+        )
     shapes = _prepare_current_shapes(self, options)
     return self.canvas.render_visualization(
         pixmap,
@@ -498,7 +510,11 @@ def _render_current_image(self, options):
 def _render_image_file(self, image_file, options, shapes=None):
     image = _load_qimage(image_file)
     if image.isNull():
-        raise RuntimeError(f"Failed to read image: {image_file}")
+        raise RuntimeError(
+            QCoreApplication.translate(
+                "Messages", "Failed to read image: {0}"
+            ).format(image_file)
+        )
 
     if shapes is None:
         shapes = _load_shapes_for_image(self, image_file, options)
@@ -705,10 +721,14 @@ def _get_image_size(image_file):
 def _qimage_to_png_bytes(image):
     buffer = QtCore.QBuffer()
     if not buffer.open(QtCore.QIODevice.OpenModeFlag.WriteOnly):
-        raise RuntimeError("Failed to open PNG buffer")
+        raise RuntimeError(
+            QCoreApplication.translate("Messages", "Failed to open PNG buffer")
+        )
     try:
         if not image.save(buffer, "PNG"):
-            raise RuntimeError("Failed to encode PNG")
+            raise RuntimeError(
+                QCoreApplication.translate("Messages", "Failed to encode PNG")
+            )
         return bytes(buffer.data())
     finally:
         buffer.close()

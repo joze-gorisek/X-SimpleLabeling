@@ -414,6 +414,30 @@ SHORTCUT_DUPLICATE_WHITELIST = {
     frozenset({"shortcuts.undo", "shortcuts.undo_last_point"}),
 }
 
+# Shortcuts of features the polygon-only UI does not expose. They stay valid
+# config keys, but are not listed and do not reserve their key sequence.
+HIDDEN_SHORTCUT_KEYS = frozenset(
+    f"shortcuts.{name}"
+    for name in (
+        "auto_label",
+        "create_circle",
+        "create_cuboid",
+        "create_line",
+        "create_linestrip",
+        "create_point",
+        "create_quadrilateral",
+        "create_rectangle",
+        "create_rotation",
+        "open_chatbot",
+        "open_image_classifier",
+        "open_paddleocr",
+        "open_pointcloud",
+        "open_video_classifier",
+        "open_vqa",
+        "show_linking",
+    )
+)
+
 EXCLUDED_KEYS = frozenset(
     {
         "language",
@@ -1563,7 +1587,9 @@ def fields_for_page(primary: str, secondary: str) -> list[SettingField]:
     return [
         field
         for field in SETTING_FIELDS
-        if field.primary == primary and field.secondary == secondary
+        if field.primary == primary
+        and field.secondary == secondary
+        and field.key not in HIDDEN_SHORTCUT_KEYS
     ]
 
 

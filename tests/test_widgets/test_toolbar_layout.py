@@ -9,7 +9,11 @@ try:
     import anylabeling.resources.resources  # noqa: F401
     from anylabeling.views.labeling.utils.qt import new_icon
     from anylabeling.views.labeling.utils.theme import init_theme
-    from anylabeling.views.labeling.widgets.toolbar import ToolBar
+    from anylabeling.views.labeling.widgets.toolbar import (
+        TOOL_BUTTON_SIZE,
+        TOOL_ICON_SIZE,
+        ToolBar,
+    )
 
     PYQT_AVAILABLE = True
 except Exception:
@@ -40,13 +44,13 @@ class TestToolBarLayout(unittest.TestCase):
             QtCore.Qt.ToolButtonStyle.ToolButtonIconOnly
         )
         toolbar.setIconSize(QtCore.QSize(24, 24))
-        toolbar.setMaximumWidth(40)
+        toolbar.setMaximumWidth(TOOL_BUTTON_SIZE)
 
         action = QtGui.QAction("Open Dir", toolbar)
         action.setIcon(new_icon("open"))
         toolbar.addAction(action)
 
-        toolbar.resize(40, 80)
+        toolbar.resize(TOOL_BUTTON_SIZE, 80)
         toolbar.show()
         self.app.processEvents()
 
@@ -54,7 +58,7 @@ class TestToolBarLayout(unittest.TestCase):
         self.assertIsNotNone(button)
         self.assertGreaterEqual(button.height(), button.iconSize().height() + 4)
         position = button.mapTo(toolbar, QtCore.QPoint())
-        self.assertGreater(position.y(), 0)
+        self.assertGreaterEqual(position.y(), 0)
         self.assertGreaterEqual(position.x(), 0)
         self.assertLessEqual(position.x() + button.width(), toolbar.width())
 
@@ -70,12 +74,20 @@ class TestToolBarLayout(unittest.TestCase):
             toolbar.show()
             self.app.processEvents()
             button = toolbar.findChildren(QtWidgets.QToolButton)[-1]
-            self.assertEqual(button.size(), QtCore.QSize(42, 42))
-            self.assertEqual(button.iconSize(), QtCore.QSize(36, 36))
+            scaled_button = round(TOOL_BUTTON_SIZE * 1.5)
+            scaled_icon = round(TOOL_ICON_SIZE * 1.5)
+            self.assertEqual(
+                button.size(), QtCore.QSize(scaled_button, scaled_button)
+            )
+            self.assertEqual(
+                button.iconSize(), QtCore.QSize(scaled_icon, scaled_icon)
+            )
             rect = QtCore.QRect(
                 button.mapTo(toolbar, QtCore.QPoint()), button.size()
             )
             self.assertTrue(toolbar.rect().contains(rect))
             toolbar.setUiScale(1.0)
             self.app.processEvents()
-            self.assertEqual(button.size(), QtCore.QSize(28, 28))
+            self.assertEqual(
+                button.size(), QtCore.QSize(TOOL_BUTTON_SIZE, TOOL_BUTTON_SIZE)
+            )

@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import base64
 import json
 import mimetypes
@@ -66,6 +68,7 @@ from anylabeling.views.labeling.video_classifier.export_dialog import (
     ExportDialog,
 )
 from anylabeling.views.labeling.video_classifier.exporter import (
+    EXPORT_CANCELLED,
     ExporterController,
     SegmentExporterController,
 )
@@ -232,11 +235,19 @@ class _StreamingVideoBody:
                 read_size = min(AI_VIDEO_CHUNK_BYTES, remaining)
                 chunk = stream.read(read_size)
                 if len(chunk) != read_size:
-                    raise RuntimeError("Video changed while it was being read")
+                    raise RuntimeError(
+                        QCoreApplication.translate(
+                            "Messages", "Video changed while it was being read"
+                        )
+                    )
                 remaining -= len(chunk)
                 yield base64.b64encode(chunk)
             if stream.read(1):
-                raise RuntimeError("Video changed while it was being read")
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        "Messages", "Video changed while it was being read"
+                    )
+                )
         if self.is_cancelled():
             raise RuntimeError(AI_CANCELLED)
         yield self.suffix
@@ -255,7 +266,9 @@ class VideoLoadWorker(QThread):
 
     def run(self):
         # Probe metadata via ffprobe / opencv to capture fps / size early.
-        self.progressChanged.emit("Probing video metadata...")
+        self.progressChanged.emit(
+            QCoreApplication.translate("Messages", "Probing video metadata...")
+        )
         info = probe_video(
             self.video_path,
             is_cancelled=self.isInterruptionRequested,
@@ -263,7 +276,11 @@ class VideoLoadWorker(QThread):
         if self.isInterruptionRequested():
             self.resultReady.emit(self.video_path, {}, [], True)
             return
-        self.progressChanged.emit("Generating video thumbnails...")
+        self.progressChanged.emit(
+            QCoreApplication.translate(
+                "Messages", "Generating video thumbnails..."
+            )
+        )
         thumbnails = extract_video_thumbnails(
             self.video_path,
             is_cancelled=self.isInterruptionRequested,
@@ -319,7 +336,7 @@ class VideoDescriptionWorker(QThread):
             providers_config = self._load_json(get_providers_config_path())
             if not models_config or not providers_config:
                 self.resultReady.emit(
-                    "", False, "Configuration files not found"
+                    "", False, self.tr("Configuration files not found")
                 )
                 return
 
@@ -330,7 +347,9 @@ class VideoDescriptionWorker(QThread):
                 self.resultReady.emit(
                     "",
                     False,
-                    "Please configure model and provider in Chatbot (Ctrl+0)",
+                    self.tr(
+                        "Please configure model and provider in Chatbot (Ctrl+0)"
+                    ),
                 )
                 return
 
@@ -341,7 +360,10 @@ class VideoDescriptionWorker(QThread):
                 self.resultReady.emit(
                     "",
                     False,
-                    f"Please configure API key for {provider} in Chatbot (Ctrl+0)",
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Please configure API key for {0} in Chatbot (Ctrl+0)",
+                    ).format(provider),
                 )
                 return
 
@@ -366,7 +388,13 @@ class VideoDescriptionWorker(QThread):
             if self._cancelled:
                 self.resultReady.emit("", False, AI_CANCELLED)
             else:
-                self.resultReady.emit("", False, f"API call failed: {exc}")
+                self.resultReady.emit(
+                    "",
+                    False,
+                    QCoreApplication.translate(
+                        "Messages", "API call failed: {0}"
+                    ).format(exc),
+                )
         finally:
             if temp_path:
                 try:
@@ -388,24 +416,36 @@ class VideoDescriptionWorker(QThread):
             duration_ms = max(0, self.segment.end_ms - self.segment.start_ms)
         if duration_ms > AI_VIDEO_MAX_DURATION_MS:
             raise RuntimeError(
-                "Video duration exceeds the 10-minute AI processing limit. "
-                "Select a shorter segment."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Video duration exceeds the 10-minute AI processing limit. Select a shorter segment.",
+                )
             )
         if self.segment:
-            self.progressChanged.emit("Preparing selected segment...")
+            self.progressChanged.emit(
+                QCoreApplication.translate(
+                    "Messages", "Preparing selected segment..."
+                )
+            )
             temp_path = self._extract_segment()
             if not temp_path:
                 if self._cancelled:
                     raise RuntimeError(AI_CANCELLED)
-                raise RuntimeError("Failed to prepare selected segment")
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        "Messages", "Failed to prepare selected segment"
+                    )
+                )
             source_path = temp_path
 
         try:
             source_size = os.path.getsize(source_path)
             if source_size > AI_VIDEO_MAX_BYTES:
                 raise RuntimeError(
-                    "Video size exceeds the 100 MB AI processing limit. "
-                    "Select a shorter segment."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Video size exceeds the 100 MB AI processing limit. Select a shorter segment.",
+                    )
                 )
         except Exception:
             if temp_path:
@@ -415,7 +455,9 @@ class VideoDescriptionWorker(QThread):
                     pass
             raise
 
-        self.progressChanged.emit("Uploading video...")
+        self.progressChanged.emit(
+            QCoreApplication.translate("Messages", "Uploading video...")
+        )
         mime = mimetypes.guess_type(source_path)[0] or "video/mp4"
         return source_path, mime, temp_path
 
@@ -573,7 +615,11 @@ class VideoDescriptionWorker(QThread):
                 self._response = response
             if self._cancelled:
                 raise RuntimeError(AI_CANCELLED)
-            self.progressChanged.emit("Waiting for AI response...")
+            self.progressChanged.emit(
+                QCoreApplication.translate(
+                    "Messages", "Waiting for AI response..."
+                )
+            )
             if not response.ok:
                 try:
                     error_message = (
@@ -602,7 +648,11 @@ class VideoDescriptionWorker(QThread):
             separators=(",", ":"),
         ).encode("utf-8")
         if payload.count(marker) != 1:
-            raise RuntimeError("Failed to prepare the video request")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "Failed to prepare the video request"
+                )
+            )
         prefix, suffix = payload.split(marker, 1)
         return _StreamingVideoBody(
             source_path,
@@ -1232,13 +1282,13 @@ class VideoClassifierDialog(QDialog):
 
     def _shortcut_rows(self):
         return [
-            ("Space", self.tr("Play/Pause")),
-            ("Left/Right", self.tr("Previous/Next frame")),
-            ("Shift+Left/Right", self.tr("Back/Forward 1 second")),
+            (self.tr("Space"), self.tr("Play/Pause")),
+            (self.tr("Left/Right"), self.tr("Previous/Next frame")),
+            (self.tr("Shift+Left/Right"), self.tr("Back/Forward 1 second")),
             (",/.", self.tr("Previous/Next segment")),
             ("I/O", self.tr("Mark in/out")),
             ("Enter", self.tr("Create segment from marks")),
-            ("Delete/Backspace", self.tr("Delete selected segment")),
+            (self.tr("Delete/Backspace"), self.tr("Delete selected segment")),
             ("Ctrl+S", self.tr("Save annotations")),
             ("Ctrl+Z", self.tr("Undo")),
             ("Ctrl+Shift+Z", self.tr("Redo")),
@@ -1684,7 +1734,7 @@ class VideoClassifierDialog(QDialog):
             self,
             self.tr("Open video"),
             os.path.dirname(self._video_path) if self._video_path else "",
-            SUPPORTED_VIDEO_FILTER,
+            self.tr(SUPPORTED_VIDEO_FILTER),
         )
         if path:
             self.load_video(path)
@@ -2638,7 +2688,9 @@ class VideoClassifierDialog(QDialog):
         else:
             start, end = -1, -1
         if start < 0 or end < start:
-            raise ValueError("No JSON payload found")
+            raise ValueError(
+                QCoreApplication.translate("Messages", "No JSON payload found")
+            )
         return text[start : end + 1]
 
     def _time_text_to_ms(self, text):
@@ -2903,13 +2955,13 @@ class VideoClassifierDialog(QDialog):
                         path=save_path
                     ),
                 )
-            elif message == "Cancelled":
+            elif message == EXPORT_CANCELLED:
                 self._refresh_status_bar(extra=self.tr("Export cancelled."))
             else:
                 QMessageBox.warning(
                     self,
                     self.tr("Export failed"),
-                    message
+                    self.tr(message)
                     or self.tr("Failed to export the selected segment."),
                 )
 
@@ -2983,7 +3035,9 @@ class VideoClassifierDialog(QDialog):
 
         def on_progress(pct, msg):
             progress.setValue(int(pct))
-            progress.setLabelText(self.tr("Exporting…\n{msg}").format(msg=msg))
+            progress.setLabelText(
+                self.tr("Exporting…\n{msg}").format(msg=self.tr(msg))
+            )
 
         def on_log(line):
             logger.info(f"[video_classifier export] {line}")
@@ -2993,9 +3047,13 @@ class VideoClassifierDialog(QDialog):
             progress.close()
             self._exporter = None
             if ok:
-                QMessageBox.information(self, self.tr("Export complete"), msg)
+                QMessageBox.information(
+                    self, self.tr("Export complete"), self.tr(msg)
+                )
             else:
-                QMessageBox.warning(self, self.tr("Export failed"), msg)
+                QMessageBox.warning(
+                    self, self.tr("Export failed"), self.tr(msg)
+                )
 
         controller.progressChanged.connect(on_progress)
         controller.logged.connect(on_log)

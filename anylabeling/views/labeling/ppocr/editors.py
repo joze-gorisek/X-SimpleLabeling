@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from PyQt6.QtCore import QCoreApplication
+
 from html import escape as html_escape, unescape as html_unescape
 from html.parser import HTMLParser
 import hashlib
@@ -1038,9 +1040,16 @@ def _render_latex_preview_png_bytes_with_subprocess(
 
     if missing_matplotlib:
         raise ModuleNotFoundError(
-            "LaTeX preview requires matplotlib in an available Python runtime."
+            QCoreApplication.translate(
+                "Messages",
+                "LaTeX preview requires matplotlib in an available Python runtime.",
+            )
         )
-    raise ValueError("Failed to render LaTeX preview.")
+    raise ValueError(
+        QCoreApplication.translate(
+            "Messages", "Failed to render LaTeX preview."
+        )
+    )
 
 
 @lru_cache(maxsize=384)
@@ -1076,7 +1085,11 @@ def _render_latex_preview_png_bytes(source: str) -> bytes:
         _normalized_latex_source(source)
     )
     if not normalized:
-        raise ValueError("Enter LaTeX source to preview.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Enter LaTeX source to preview."
+            )
+        )
     return _render_latex_preview_png_bytes_cached(
         normalized,
         _latex_preview_cache_token_for_source(normalized),
@@ -1174,7 +1187,11 @@ def _render_single_latex_preview_pixmap(source: str) -> QPixmap:
         _normalized_latex_source(source)
     )
     if not normalized:
-        raise ValueError("Enter LaTeX source to preview.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Enter LaTeX source to preview."
+            )
+        )
     image_buffer = BytesIO(
         _render_trimmed_latex_preview_png_bytes(
             normalized,
@@ -1186,7 +1203,11 @@ def _render_single_latex_preview_pixmap(source: str) -> QPixmap:
     )
     pixmap = QPixmap()
     if not pixmap.loadFromData(image_buffer.getvalue(), "PNG"):
-        raise ValueError("Failed to render LaTeX preview.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Failed to render LaTeX preview."
+            )
+        )
     return pixmap
 
 
@@ -1248,7 +1269,11 @@ def _latex_preview_line_specs(
 def render_latex_preview_pixmap(source: str) -> QPixmap:
     normalized_source = _normalized_latex_source(source)
     if not normalized_source:
-        raise ValueError("Enter LaTeX source to preview.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Enter LaTeX source to preview."
+            )
+        )
 
     _ensure_latex_preview_pixmap_cache_limit()
     cache_key = _latex_preview_pixmap_cache_key(normalized_source)
@@ -1258,7 +1283,11 @@ def render_latex_preview_pixmap(source: str) -> QPixmap:
 
     line_specs = _latex_preview_line_specs(normalized_source)
     if not line_specs:
-        raise ValueError("Enter LaTeX source to preview.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Enter LaTeX source to preview."
+            )
+        )
 
     sanitized_source = _sanitize_latex_preview_source(normalized_source)
     has_tex_environment = r"\begin{" in normalized_source
@@ -1284,7 +1313,11 @@ def render_latex_preview_pixmap(source: str) -> QPixmap:
         try:
             line_pixmap = _render_single_latex_preview_pixmap(line_text)
         except Exception as exc:
-            raise ValueError(f"Line {line_number}: {exc}") from exc
+            raise ValueError(
+                QCoreApplication.translate("Messages", "Line {0}: {1}").format(
+                    line_number, exc
+                )
+            ) from exc
         gap_before = 0
         if index > 0:
             gap_before = PPOCR_LATEX_PREVIEW_LINE_GAP_PX + (
@@ -3031,7 +3064,7 @@ class PPOCRLatexBlockEditor(QFrame):
         toolbar_layout.setContentsMargins(16, 8, 12, 8)
         toolbar_layout.setSpacing(8)
 
-        title_label = QLabel("LaTeX", toolbar)
+        title_label = QLabel(self.tr("LaTeX"), toolbar)
         title_font = QFont()
         title_font.setPointSize(12)
         title_font.setWeight(QFont.Weight.DemiBold)
@@ -4509,7 +4542,7 @@ class PPOCRTableBlockEditor(QFrame):
                     )
             for col_index in range(3):
                 item = self._ensure_cell_item(0, col_index)
-                item.setText(f"Title {col_index + 1}")
+                item.setText(self.tr("Title %d") % (col_index + 1))
                 font = item.font()
                 font.setBold(True)
                 item.setFont(font)

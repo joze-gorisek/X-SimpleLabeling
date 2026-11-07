@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import hashlib
 import json
 import os
@@ -43,11 +45,15 @@ def _map_wsl_absolute_path(path: str, wsl_root: str | None) -> str | None:
 def resolve_prepared_dataset(data_file: str) -> tuple[str | None, str]:
     data = load_yaml_config(data_file)
     if not isinstance(data, dict):
-        return None, f"Failed to parse dataset YAML: {data_file}"
+        return None, QCoreApplication.translate(
+            "Messages", "Failed to parse dataset YAML: {0}"
+        ).format(data_file)
 
     dataset_root = data.get("path")
     if not isinstance(dataset_root, str) or not dataset_root.strip():
-        return None, f"Dataset YAML must define 'path': {data_file}"
+        return None, QCoreApplication.translate(
+            "Messages", "Dataset YAML must define 'path': {0}"
+        ).format(data_file)
     dataset_root = os.path.expanduser(os.path.expandvars(dataset_root))
     wsl_root = _get_wsl_unc_root(data_file)
     normalized_data = dict(data)
@@ -64,7 +70,9 @@ def resolve_prepared_dataset(data_file: str) -> tuple[str | None, str]:
             )
             return (
                 None,
-                f"Dataset path does not exist: {dataset_root}{checked_path}",
+                QCoreApplication.translate(
+                    "Messages", "Dataset path does not exist: {0}{1}"
+                ).format(dataset_root, checked_path),
             )
         dataset_root = mapped_root
         normalized_data["path"] = mapped_root
@@ -73,7 +81,9 @@ def resolve_prepared_dataset(data_file: str) -> tuple[str | None, str]:
     for split in ("train", "val"):
         split_path = data.get(split)
         if not isinstance(split_path, str) or not split_path.strip():
-            return None, f"Dataset YAML must define '{split}': {data_file}"
+            return None, QCoreApplication.translate(
+                "Messages", "Dataset YAML must define '{0}': {1}"
+            ).format(split, data_file)
         split_path = os.path.expanduser(os.path.expandvars(split_path))
         if not os.path.isabs(split_path):
             split_path = os.path.join(dataset_root, split_path)
@@ -85,8 +95,10 @@ def resolve_prepared_dataset(data_file: str) -> tuple[str | None, str]:
                 )
                 return (
                     None,
-                    f"Dataset split '{split}' does not exist: "
-                    f"{split_path}{checked_path}",
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Dataset split '{0}' does not exist: {1}{2}",
+                    ).format(split, split_path, checked_path),
                 )
             split_path = mapped_split
             normalized_data[split] = mapped_split
@@ -116,9 +128,13 @@ def resolve_prepared_dataset(data_file: str) -> tuple[str | None, str]:
     try:
         os.makedirs(resolved_dir, exist_ok=True)
     except OSError as error:
-        return None, f"Failed to prepare resolved dataset YAML: {error}"
+        return None, QCoreApplication.translate(
+            "Messages", "Failed to prepare resolved dataset YAML: {0}"
+        ).format(error)
     if not save_yaml_config(normalized_data, resolved_path):
-        return None, f"Failed to save resolved dataset YAML: {resolved_path}"
+        return None, QCoreApplication.translate(
+            "Messages", "Failed to save resolved dataset YAML: {0}"
+        ).format(resolved_path)
     return resolved_path, ""
 
 
@@ -210,17 +226,27 @@ def create_yolo_dataset(
     else:
         data = load_yaml_config(data_file)
         if not isinstance(data, dict):
-            raise ValueError(f"Failed to parse dataset YAML: {data_file}")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Failed to parse dataset YAML: {0}"
+                ).format(data_file)
+            )
         names = data.get("names")
         if not isinstance(names, (dict, list)) or not names:
             raise ValueError(
-                f"Dataset YAML must contain a non-empty 'names' field: {data_file}"
+                QCoreApplication.translate(
+                    "Messages",
+                    "Dataset YAML must contain a non-empty 'names' field: {0}",
+                ).format(data_file)
             )
         if task_type.lower() == "pose":
             if not pose_cfg_file:
                 return (
                     None,
-                    "Pose configuration file is required for pose detection tasks",
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Pose configuration file is required for pose detection tasks",
+                    ),
                 )
             converter = LabelConverter(pose_cfg_file=pose_cfg_file)
         else:

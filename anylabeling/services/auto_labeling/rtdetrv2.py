@@ -47,8 +47,8 @@ class RTDETRv2(Model):
             raise FileNotFoundError(
                 QCoreApplication.translate(
                     "Model",
-                    f"Could not download or initialize {model_name} model.",
-                )
+                    "Could not download or initialize {model_name} model.",
+                ).format(model_name=model_name)
             )
         self.net = OnnxBaseModel(model_abs_path, __preferred_device__)
         self.classes = self.config["classes"]

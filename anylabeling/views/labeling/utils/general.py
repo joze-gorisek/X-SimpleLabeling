@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import os
 import re
 import shutil
@@ -66,7 +68,11 @@ def resolve_path_within_directory(path, directory):
     directory = Path(directory).resolve()
     path = Path(path).resolve()
     if path == directory or directory not in path.parents:
-        raise ValueError(f"Path must be within the output directory: {path}")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Path must be within the output directory: {0}"
+            ).format(path)
+        )
     return path
 
 
@@ -79,7 +85,11 @@ def resolve_export_directory(output_dir, name):
         or "/" in name
         or "\\" in name
     ):
-        raise ValueError(f"Invalid export directory name: {name!r}")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Invalid export directory name: {0!r}"
+            ).format(name)
+        )
     return resolve_path_within_directory(Path(output_dir) / name, output_dir)
 
 

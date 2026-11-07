@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import os
 from pathlib import Path
@@ -155,7 +157,9 @@ def parse_worker_output(
         notify_callbacks(
             "environment_error",
             {
-                "error": "Unsupported worker protocol",
+                "error": QCoreApplication.translate(
+                    "Messages", "Unsupported worker protocol"
+                ),
                 "error_type": "protocol_error",
             },
         )
@@ -263,7 +267,10 @@ class EnvironmentManager:
                         request_id,
                         "environment_error",
                         {
-                            "error": f"Environment detection timed out after {timeout:g} seconds",
+                            "error": QCoreApplication.translate(
+                                "Messages",
+                                "Environment detection timed out after {0:g} seconds",
+                            ).format(timeout),
                             "error_type": "probe_timeout",
                         },
                     )
@@ -292,7 +299,10 @@ class EnvironmentManager:
                         request_id,
                         "environment_error",
                         {
-                            "error": f"Environment process exited with code {process.returncode}",
+                            "error": QCoreApplication.translate(
+                                "Messages",
+                                "Environment process exited with code {0}",
+                            ).format(process.returncode),
                             "error_type": "process_exit",
                             "details": "\n".join(diagnostic_lines),
                         },
@@ -302,7 +312,10 @@ class EnvironmentManager:
                         request_id,
                         "environment_error",
                         {
-                            "error": "Environment process returned no result",
+                            "error": QCoreApplication.translate(
+                                "Messages",
+                                "Environment process returned no result",
+                            ),
                             "error_type": "invalid_output",
                         },
                     )
@@ -317,8 +330,10 @@ class EnvironmentManager:
                     "environment_error",
                     {
                         "error": (
-                            f"Failed to start training Python "
-                            f"'{python_executable}': {exc}"
+                            QCoreApplication.translate(
+                                "Messages",
+                                "Failed to start training Python '{0}': {1}",
+                            ).format(python_executable, exc)
                         ),
                         "error_type": error_type,
                     },

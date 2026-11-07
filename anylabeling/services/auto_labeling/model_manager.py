@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import os
 import copy
 import re
@@ -425,7 +427,11 @@ def _get_model_class(model_type):  # noqa: C901
         from .u_rtdetr import U_RTDETR
 
         return U_RTDETR
-    raise ValueError(f"Unknown model type: {model_type}")
+    raise ValueError(
+        QCoreApplication.translate(
+            "Messages", "Unknown model type: {0}"
+        ).format(model_type)
+    )
 
 
 class ModelManager(QObject):
@@ -931,8 +937,11 @@ class ModelManager(QObject):
             if model_type in _TIMEOUT_MODELS:
                 with TimeoutContext(
                     timeout=300,
-                    timeout_message="""Model loading timeout! Please check your network connection.
-                                    Alternatively, you can try to load the model from local directory.""",
+                    timeout_message=self.tr(
+                        "Model loading timeout! Please check your network "
+                        "connection. Alternatively, you can try to load the "
+                        "model from local directory."
+                    ),
                 ) as ctx:
                     _ = ctx.run(_construct)
             else:

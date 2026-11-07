@@ -66,7 +66,7 @@ def compile_resources(output: str, qrc: str) -> None:
     )
 
 
-supported_languages = ["en_US", "zh_CN", "ja_JP", "ko_KR"]
+supported_languages = ["en_US", "zh_CN", "ja_JP", "ko_KR", "sl_SI"]
 translations_path = "anylabeling/resources/translations"
 lrelease = find_lrelease()
 

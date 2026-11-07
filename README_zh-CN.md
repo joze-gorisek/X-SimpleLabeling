@@ -63,7 +63,7 @@
 * 集成多种先进的深度学习模型，支持 AI 辅助标注、自动标注和数据集批量预测。
 * 支持本地与远程推理，可接入 `ONNX Runtime`、`TensorRT`、`OpenCV DNN`、`vLLM`、`SGLang` 等推理引擎与服务框架。
 * 支持导入和导出 `COCO`、`VOC`、`YOLO`、`DOTA`、`MOT`、`MASK`、`PPOCR`、`MMGD`、`VLM-R1` 和 `ShareGPT` 等多种数据格式。
-* 支持 Windows、Linux 和 macOS，并提供英文、简体中文、日文和韩文界面。
+* 支持 Windows、Linux 和 macOS，并提供英文、简体中文、日文、韩文和斯洛文尼亚文界面。
 * 支持接入自定义模型，并提供灵活的扩展与二次开发能力。
 
 ## 模型库

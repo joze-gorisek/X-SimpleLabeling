@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import os
 import subprocess
 import sys
@@ -25,10 +27,14 @@ def validate_basic_config(
     basic = config.get("basic", {})
 
     if not basic.get("project", "").strip():
-        return False, "Project field is required"
+        return False, QCoreApplication.translate(
+            "Messages", "Project field is required"
+        )
 
     if not basic.get("name", "").strip():
-        return False, "Name field is required"
+        return False, QCoreApplication.translate(
+            "Messages", "Name field is required"
+        )
 
     save_dir = os.path.join(basic["project"], basic["name"])
     if os.path.exists(save_dir):
@@ -43,11 +49,15 @@ def validate_basic_config(
     if not model_path or (
         not os.path.exists(model_path) and not is_bare_model_name
     ):
-        return False, "Valid model file is required"
+        return False, QCoreApplication.translate(
+            "Messages", "Valid model file is required"
+        )
 
     data_path = basic.get("data", "").strip()
     if not data_path or not os.path.exists(data_path):
-        return False, "Valid data file is required"
+        return False, QCoreApplication.translate(
+            "Messages", "Valid data file is required"
+        )
 
     return True, ""
 
@@ -72,12 +82,16 @@ def validate_classes(classes_str: str, names: List[str]) -> Tuple[bool, str]:
     classes = parse_string_to_digit_list(classes_str)
 
     if classes is None:
-        return False, "Invalid classes format"
+        return False, QCoreApplication.translate(
+            "Messages", "Invalid classes format"
+        )
 
     max_index = len(names) - 1
     for cls_idx in classes:
         if cls_idx < 0 or cls_idx > max_index:
-            return False, f"Class index {cls_idx} out of range (0-{max_index})"
+            return False, QCoreApplication.translate(
+                "Messages", "Class index {0} out of range (0-{1})"
+            ).format(cls_idx, max_index)
 
     return True, ""
 
@@ -93,7 +107,9 @@ def validate_data_file(file_path: str) -> Tuple[bool, Union[str, List[str]]]:
     """
     data = load_yaml_config(file_path)
     if not isinstance(data, dict):
-        return False, f"Failed to parse data file: {file_path}"
+        return False, QCoreApplication.translate(
+            "Messages", "Failed to parse data file: {0}"
+        ).format(file_path)
 
     names = data.get("names")
     if isinstance(names, dict):
@@ -105,7 +121,10 @@ def validate_data_file(file_path: str) -> Tuple[bool, Union[str, List[str]]]:
     if not class_names:
         return (
             False,
-            f"Data file must contain a non-empty 'names' field: {file_path}",
+            QCoreApplication.translate(
+                "Messages",
+                "Data file must contain a non-empty 'names' field: {0}",
+            ).format(file_path),
         )
 
     return True, class_names
@@ -124,7 +143,11 @@ def install_packages_with_timeout(packages, timeout=30):
 
     except subprocess.TimeoutExpired:
         process.kill()
-        return False, "", "Installation timed out"
+        return (
+            False,
+            "",
+            QCoreApplication.translate("Messages", "Installation timed out"),
+        )
     except Exception as e:
         return False, "", str(e)
 
@@ -133,7 +156,9 @@ def validate_task_requirements(
     task_type: str, image_list: List[str], output_dir: str = None
 ) -> Tuple[bool, str]:
     if not task_type:
-        return False, "Please select a task type"
+        return False, QCoreApplication.translate(
+            "Messages", "Please select a task type"
+        )
 
     if not image_list:
         return True, ""
@@ -143,7 +168,10 @@ def validate_task_requirements(
     if valid_images < MIN_LABELED_IMAGES_THRESHOLD:
         return (
             False,
-            f"Need at least {MIN_LABELED_IMAGES_THRESHOLD} labeled images for {task_type} task. Found: {valid_images}",
+            QCoreApplication.translate(
+                "Messages",
+                "Need at least {0} labeled images for {1} task. Found: {2}",
+            ).format(MIN_LABELED_IMAGES_THRESHOLD, task_type, valid_images),
         )
 
     return True, ""

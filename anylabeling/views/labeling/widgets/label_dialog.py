@@ -16,7 +16,6 @@ from PyQt6.QtWidgets import (
 
 from anylabeling.views.labeling import utils
 from anylabeling.views.labeling.logger import logger
-from anylabeling.views.labeling.shape import Shape
 from anylabeling.views.labeling.widgets.popup import Popup
 from anylabeling.views.labeling.widgets.panel import RoundedPanel
 from anylabeling.views.labeling.utils.qt import new_icon_path
@@ -86,7 +85,7 @@ class DigitShortcutDialog(QtWidgets.QDialog):
         ):
             self.digit_shortcuts = self.parent.drawing_digit_shortcuts.copy()
 
-        self.available_modes = Shape.get_supported_shape()
+        self.available_modes = ["polygon"]
 
         self.setWindowTitle(self.tr("Digit Shortcut Manager"))
         self.setModal(True)
@@ -414,7 +413,11 @@ class GroupIDModifyDialog(QtWidgets.QDialog):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(20)
 
-        title_list = ["Ori Group-ID", "New Group-ID", "Delete Group by ID"]
+        title_list = [
+            self.tr("Ori Group-ID"),
+            self.tr("New Group-ID"),
+            self.tr("Delete Group by ID"),
+        ]
         self.table_widget = QTableWidget(self)
         self.table_widget.setColumnCount(len(title_list))
         self.table_widget.setHorizontalHeaderLabels(title_list)
@@ -484,7 +487,7 @@ class GroupIDModifyDialog(QtWidgets.QDialog):
         range_layout = QtWidgets.QHBoxLayout()
         range_layout.addStretch(1)
 
-        from_label = QtWidgets.QLabel("From:")
+        from_label = QtWidgets.QLabel(self.tr("From:"))
         self.from_input = QtWidgets.QSpinBox()
         self.from_input.setMinimum(1)
         self.from_input.setMaximum(len(self.image_file_list))
@@ -494,7 +497,7 @@ class GroupIDModifyDialog(QtWidgets.QDialog):
         range_layout.addWidget(from_label)
         range_layout.addWidget(self.from_input)
 
-        to_label = QtWidgets.QLabel("To:")
+        to_label = QtWidgets.QLabel(self.tr("To:"))
         self.to_input = QtWidgets.QSpinBox()
         self.to_input.setMinimum(1)
         self.to_input.setMaximum(len(self.image_file_list))
@@ -504,7 +507,7 @@ class GroupIDModifyDialog(QtWidgets.QDialog):
         range_layout.addWidget(to_label)
         range_layout.addWidget(self.to_input)
 
-        self.range_button = QtWidgets.QPushButton("Go")
+        self.range_button = QtWidgets.QPushButton(self.tr("Go"))
         self.range_button.setStyleSheet(get_ok_btn_style())
         range_layout.addWidget(self.range_button)
         self.range_button.clicked.connect(self.update_range)
@@ -538,7 +541,7 @@ class GroupIDModifyDialog(QtWidgets.QDialog):
             # New Group-ID
             line_edit = QtWidgets.QLineEdit(self.table_widget)
             line_edit.setValidator(QIntValidator(0, 9999, self))
-            line_edit.setPlaceholderText("Enter new ID")
+            line_edit.setPlaceholderText(self.tr("Enter new ID"))
             line_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
             line_edit.setFixedHeight(28)
             line_edit.textChanged.connect(
@@ -800,12 +803,12 @@ class LabelModifyDialog(QtWidgets.QDialog):
         self.move_to_center()
 
         title_list = [
-            "Category",
-            "Delete",
-            "New Value",
-            "Visible",
-            "Lock",
-            "Color",
+            self.tr("Category"),
+            self.tr("Delete"),
+            self.tr("New Value"),
+            self.tr("Visible"),
+            self.tr("Lock"),
+            self.tr("Color"),
         ]
         self.table_widget = QTableWidget(self)
         self.table_widget.setColumnCount(len(title_list))
@@ -852,7 +855,7 @@ class LabelModifyDialog(QtWidgets.QDialog):
         # Add stretch to center the widgets
         range_layout.addStretch(1)
 
-        from_label = QtWidgets.QLabel("From:")
+        from_label = QtWidgets.QLabel(self.tr("From:"))
         self.from_input = QtWidgets.QSpinBox()
         self.from_input.setMinimum(1)
         self.from_input.setMaximum(len(self.image_file_list))
@@ -862,7 +865,7 @@ class LabelModifyDialog(QtWidgets.QDialog):
         range_layout.addWidget(from_label)
         range_layout.addWidget(self.from_input)
 
-        to_label = QtWidgets.QLabel("To:")
+        to_label = QtWidgets.QLabel(self.tr("To:"))
         self.to_input = QtWidgets.QSpinBox()
         self.to_input.setMinimum(1)
         self.to_input.setMaximum(len(self.image_file_list))
@@ -872,7 +875,7 @@ class LabelModifyDialog(QtWidgets.QDialog):
         range_layout.addWidget(to_label)
         range_layout.addWidget(self.to_input)
 
-        self.range_button = QtWidgets.QPushButton("Go")
+        self.range_button = QtWidgets.QPushButton(self.tr("Go"))
         self.range_button.setStyleSheet(get_ok_btn_style())
         range_layout.addWidget(self.range_button)
         self.range_button.clicked.connect(self.update_range)

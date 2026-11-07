@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import os
 import json
 import shutil
@@ -263,7 +265,9 @@ class MultiTaskBatch(QObject):
             match = re.search(r"```json\s*(.*?)\s*```", result, re.DOTALL)
             values = json.loads(match.group(1) if match else result)
             if not isinstance(values, dict):
-                raise ValueError("Invalid response")
+                raise ValueError(
+                    QCoreApplication.translate("Messages", "Invalid response")
+                )
             values = {
                 name: value
                 for name, value in values.items()
@@ -273,13 +277,21 @@ class MultiTaskBatch(QObject):
                 and (schema[name] == "text" or value in schema[name])
             }
             if not values:
-                raise ValueError("No valid attributes")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "No valid attributes"
+                    )
+                )
             if target is None:
                 owner = self.owner.label_widget
                 if owner.filename != path or not any(
                     item is shape for item in owner.canvas.shapes
                 ):
-                    raise ValueError("Object no longer available")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Object no longer available"
+                        )
+                    )
                 for name, value in values.items():
                     self.owner.multitask_form.set_value(shape, name, value)
                 self.owner.select_object(
@@ -290,13 +302,21 @@ class MultiTaskBatch(QObject):
                 with open(label_path, "rb") as stream:
                     content = stream.read()
                 if content != self.files[label_path]:
-                    raise ValueError("Annotation changed during processing")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Annotation changed during processing"
+                        )
+                    )
                 data = json.loads(content)
                 item = data["shapes"][index]
                 if item.get("label") != original_shape.get(
                     "label"
                 ) or item.get("points") != original_shape.get("points"):
-                    raise ValueError("Object changed during processing")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Object changed during processing"
+                        )
+                    )
                 item.setdefault("attributes", {}).update(values)
                 save_json(data, label_path)
                 with open(label_path, "rb") as stream:
@@ -431,12 +451,24 @@ class ClassificationBatch(MultiTaskBatch):
                 or set(flags) != set(self.labels)
                 or any(type(value) is not bool for value in flags.values())
             ):
-                raise ValueError("Invalid classification result")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Invalid classification result"
+                    )
+                )
             if self.is_multiclass and sum(flags.values()) != 1:
-                raise ValueError("Expected exactly one category")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Expected exactly one category"
+                    )
+                )
             if label_path is None:
                 if self.owner.label_widget.filename != path:
-                    raise ValueError("Image no longer available")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Image no longer available"
+                        )
+                    )
                 self.owner.checkbox_group.set_flags(flags)
                 self.owner.save_current_flags()
             else:
@@ -446,11 +478,19 @@ class ClassificationBatch(MultiTaskBatch):
                 else:
                     content = None
                 if content != self.files[label_path]:
-                    raise ValueError("Annotation changed during processing")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Annotation changed during processing"
+                        )
+                    )
                 if content is None:
                     image = QImage(path)
                     if image.isNull():
-                        raise ValueError("Cannot read image")
+                        raise ValueError(
+                            QCoreApplication.translate(
+                                "Messages", "Cannot read image"
+                            )
+                        )
                     image_data = None
                     if self.owner.label_widget._config.get(
                         "store_data", False

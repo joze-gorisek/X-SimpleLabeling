@@ -7,6 +7,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 import re
 
+from PyQt6.QtCore import QCoreApplication
 from PyQt6.QtCore import (
     QBuffer,
     QEvent,
@@ -995,7 +996,9 @@ class PPOCRPreviewCanvas(QWidget):
             painter.drawPolygon(polygon)
             if index == 0:
                 first_polygon_rect = polygon.boundingRect()
-                first_label = block.display_label
+                first_label = QCoreApplication.translate(
+                    "Messages", block.display_label
+                )
                 first_color = resolve_qcolor(block.category_color)
         if first_polygon_rect is not None:
             self._draw_hovered_label(
@@ -1413,7 +1416,9 @@ class PPOCRBlockCard(QFrame):
         content_layout.setSpacing(12)
         layout.addWidget(self.content_frame)
 
-        self.label_chip = QLabel(block.display_label, self)
+        self.label_chip = QLabel(
+            QCoreApplication.translate("Messages", block.display_label), self
+        )
         self.label_chip.setStyleSheet(
             get_card_label_style(block.category_color)
         )

@@ -161,7 +161,11 @@ class PromptTemplateDialog(QDialog):
 
             self.table.setCellWidget(row, 0, checkbox_widget)
 
-            name_item = QTableWidgetItem(template["name"])
+            name_item = QTableWidgetItem(
+                self.tr(template["name"])
+                if template["is_system"]
+                else template["name"]
+            )
             if template["is_system"]:
                 name_item.setForeground(QColor("#6366F1"))
             else:
@@ -541,7 +545,7 @@ class AIPromptDialog(QDialog):
         dialog_layout.setSpacing(12)
 
         self.prompt_input = QTextEdit()
-        self.prompt_input.setPlaceholderText(AI_PROMPT_PLACEHOLDER)
+        self.prompt_input.setPlaceholderText(self.tr(AI_PROMPT_PLACEHOLDER))
         self.prompt_input.setStyleSheet(get_prompt_input_style())
         self.prompt_input.setAcceptRichText(True)
         self.prompt_input.textChanged.connect(self.on_text_changed)
@@ -1195,7 +1199,7 @@ class ExportLabelsDialog(QDialog):
         ]
 
         for field_type, original_key, export_key in basic_fields:
-            type_item = QTableWidgetItem(field_type)
+            type_item = QTableWidgetItem(self.tr(field_type))
             type_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             type_item.setData(
                 Qt.ItemDataRole.ForegroundRole, QColor("#718096")

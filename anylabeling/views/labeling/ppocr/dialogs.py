@@ -130,7 +130,7 @@ class PPOCRApiSettingsDialog(QDialog):
 
         self.api_url_input = QLineEdit("")
         self.api_url_input.setEchoMode(QLineEdit.EchoMode.Normal)
-        self.api_url_input.setPlaceholderText("API_URL")
+        self.api_url_input.setPlaceholderText(self.tr("API_URL"))
         self.api_url_input.setStyleSheet(get_lineedit_style())
         self.api_url_input.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -158,7 +158,7 @@ class PPOCRApiSettingsDialog(QDialog):
 
         self.api_key_input = QLineEdit("")
         self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.api_key_input.setPlaceholderText("API_KEY")
+        self.api_key_input.setPlaceholderText(self.tr("API_KEY"))
         self.api_key_input.setStyleSheet(get_lineedit_style())
         self.api_key_input.setSizePolicy(
             QSizePolicy.Policy.Expanding,

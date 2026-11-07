@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import re
 import xml.etree.ElementTree as ET
@@ -27,12 +29,20 @@ class AnnotationArchive:
             name = info.filename.replace("\\", "/")
             path = PurePosixPath(name)
             if path.is_absolute() or ".." in path.parts:
-                raise ValueError(f"Unsafe archive path: {name}")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Unsafe archive path: {0}"
+                    ).format(name)
+                )
             if info.is_dir():
                 continue
             name = str(path)
             if name in self.members:
-                raise ValueError(f"Duplicate archive member: {name}")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Duplicate archive member: {0}"
+                    ).format(name)
+                )
             self.members[name] = info
 
     def check_cancelled(self):
@@ -44,7 +54,12 @@ class AnnotationArchive:
         info = self.members[name]
         self.bytes_read += info.file_size
         if info.file_size > 128 * 1024**2 or self.bytes_read > 512 * 1024**2:
-            raise ValueError("Annotation data exceeds the import size limit.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages",
+                    "Annotation data exceeds the import size limit.",
+                )
+            )
         return self.archive.read(info).decode("utf-8-sig")
 
     def json(self, name):
@@ -57,7 +72,11 @@ class AnnotationArchive:
             if name == marker or name.endswith("/" + marker)
         ]
         if len(matches) != 1:
-            raise ValueError(f"Expected one {marker} in the selected archive.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Expected one {0} in the selected archive."
+                ).format(marker)
+            )
         return matches[0][: -len(marker)]
 
 
@@ -66,7 +85,11 @@ def _boolean(value):
         return True
     if value in (False, 0, "false", "False", "0", None, ""):
         return False
-    raise ValueError(f"Invalid boolean attribute: {value}")
+    raise ValueError(
+        QCoreApplication.translate(
+            "Messages", "Invalid boolean attribute: {0}"
+        ).format(value)
+    )
 
 
 def _classes(entries):
@@ -76,7 +99,10 @@ def _classes(entries):
         name = entry["name"]
         if not isinstance(name, str) or not name.strip() or name in names:
             raise ValueError(
-                "Imported class names must be nonempty and unique."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Imported class names must be nonempty and unique.",
+                )
             )
         color = entry.get("color", "#AAAAFF")
         if not isinstance(color, str) or not re.fullmatch(
@@ -86,7 +112,11 @@ def _classes(entries):
         classes.append(ClassDefinition(len(classes) + 1, name, color))
         names.add(name)
     if len(classes) > 65535:
-        raise ValueError("Too many imported classes.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Too many imported classes."
+            )
+        )
     return tuple(classes)
 
 
@@ -110,7 +140,11 @@ def _datumaro(source):
         and PurePosixPath(name).parent.name == "annotations"
     ]
     if not annotation_files:
-        raise ValueError("No Datumaro annotations/*.json files found.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "No Datumaro annotations/*.json files found."
+            )
+        )
     classes = None
     frames = []
     for name in sorted(annotation_files):
@@ -119,28 +153,48 @@ def _datumaro(source):
             data.get("dm_format_version", "1.0") != "1.0"
             or data.get("media_type", 6) != 6
         ):
-            raise ValueError("Expected a Datumaro 3D 1.0 point cloud dataset.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages",
+                    "Expected a Datumaro 3D 1.0 point cloud dataset.",
+                )
+            )
         definitions = _classes(
             data.get("categories", {}).get("label", {}).get("labels", [])
         )
         if classes is not None and definitions != classes:
             raise ValueError(
-                "Datumaro subsets must use the same class definitions."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Datumaro subsets must use the same class definitions.",
+                )
             )
         classes = definitions
         for item in data["items"]:
             source.check_cancelled()
             if "point_cloud" not in item:
-                raise ValueError("Datumaro items must reference point clouds.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Datumaro items must reference point clouds.",
+                    )
+                )
             boxes = []
             for annotation in item.get("annotations", []):
                 if annotation["type"] != "cuboid_3d":
                     raise ValueError(
-                        "Only cuboid_3d annotations can be imported."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "Only cuboid_3d annotations can be imported.",
+                        )
                     )
                 label = annotation["label_id"]
                 if type(label) is not int or not 0 <= label < len(classes):
-                    raise ValueError("Invalid Datumaro class reference.")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Invalid Datumaro class reference."
+                        )
+                    )
                 boxes.append(
                     _box(
                         len(boxes),
@@ -165,7 +219,11 @@ def _kitti_names(source, root):
             index, frame = line.split(maxsplit=1)
             index = int(index)
             if index < 0 or index in mapping:
-                raise ValueError("Invalid or duplicate KITTI frame index.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Invalid or duplicate KITTI frame index."
+                    )
+                )
             mapping[index] = frame.strip()
     return mapping
 
@@ -177,14 +235,22 @@ def _kitti_track(track, classes, frames, source):
     poses = track.find("poses")
     entries = poses.findall("item")
     if start < 0 or int(poses.findtext("count")) != len(entries):
-        raise ValueError("Invalid KITTI tracklet pose count or first frame.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Invalid KITTI tracklet pose count or first frame."
+            )
+        )
     previous_occluded = False
     for offset, pose in enumerate(entries):
         source.check_cancelled()
         boxes = frames.setdefault(start + offset, [])
         occlusion = int(pose.findtext("occlusion", "-1"))
         if occlusion not in (-1, 0, 1, 2):
-            raise ValueError("Invalid KITTI occlusion value.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Invalid KITTI occlusion value."
+                )
+            )
         occluded = (
             previous_occluded if occlusion == -1 else occlusion in (1, 2)
         )
@@ -194,7 +260,11 @@ def _kitti_track(track, classes, frames, source):
         if truncation in (2, 99):
             continue
         if truncation not in (-1, 0, 1):
-            raise ValueError("Invalid KITTI truncation value.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Invalid KITTI truncation value."
+                )
+            )
         boxes.append(
             _box(
                 len(boxes),
@@ -214,13 +284,25 @@ def _kitti_raw(source):
     root = source.root("tracklet_labels.xml")
     text = source.read(root + "tracklet_labels.xml")
     if "<!ENTITY" in text:
-        raise ValueError("XML entity declarations are not supported.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "XML entity declarations are not supported."
+            )
+        )
     tree = ET.fromstring(text)
     if tree.tag != "boost_serialization" or tree.find("tracklets") is None:
-        raise ValueError("Expected KITTI Raw tracklet_labels.xml.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Expected KITTI Raw tracklet_labels.xml."
+            )
+        )
     tracks = tree.findall("tracklets/item")
     if int(tree.findtext("tracklets/count")) != len(tracks):
-        raise ValueError("Invalid KITTI tracklet count.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Invalid KITTI tracklet count."
+            )
+        )
     labels = []
     metadata = root + "dataset_meta.json"
     if metadata in source.members:
@@ -237,7 +319,10 @@ def _kitti_raw(source):
         _kitti_track(track, classes, frames, source)
     if mapping and frames.keys() - mapping.keys():
         raise ValueError(
-            "KITTI tracklets reference frames absent from frame_list.txt."
+            QCoreApplication.translate(
+                "Messages",
+                "KITTI tracklets reference frames absent from frame_list.txt.",
+            )
         )
     return definitions, tuple(
         ImportedFrame(mapping.get(index), index, tuple(boxes))
@@ -249,7 +334,11 @@ def _sly_pointcloud(source):
     root = source.root("meta.json")
     meta = source.json(root + "meta.json")
     if meta.get("projectType") != "point_clouds":
-        raise ValueError("Expected a Supervisely point_clouds project.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Expected a Supervisely point_clouds project."
+            )
+        )
     definitions = _classes(
         [
             {"name": item["title"], "color": item.get("color")}
@@ -265,7 +354,11 @@ def _sly_pointcloud(source):
         and name.endswith(".pcd.json")
     ]
     if not names:
-        raise ValueError("No Supervisely point cloud annotations found.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "No Supervisely point cloud annotations found."
+            )
+        )
     frames = []
     for name in sorted(names):
         data = source.json(name)
@@ -274,7 +367,10 @@ def _sly_pointcloud(source):
             key = item["key"]
             if key in objects or item["classTitle"] not in classes:
                 raise ValueError(
-                    "Duplicate Supervisely object key or unknown class."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Duplicate Supervisely object key or unknown class.",
+                    )
                 )
             objects[key] = item
         boxes = []
@@ -282,10 +378,18 @@ def _sly_pointcloud(source):
         for figure in data["figures"]:
             source.check_cancelled()
             if figure["geometryType"] != "cuboid_3d":
-                raise ValueError("Only cuboid_3d figures can be imported.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Only cuboid_3d figures can be imported."
+                    )
+                )
             key = figure["key"]
             if key in keys:
-                raise ValueError("Duplicate Supervisely figure key.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Duplicate Supervisely figure key."
+                    )
+                )
             keys.add(key)
             item = objects[figure["objectKey"]]
             attributes = {
@@ -312,7 +416,11 @@ def _sly_pointcloud(source):
 
 def read_dataset(path, format_name, cancelled=None):
     if format_name not in EXPORT_FORMATS:
-        raise ValueError(f"Unknown import format: {format_name}")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Unknown import format: {0}"
+            ).format(format_name)
+        )
     readers = {
         "datumaro": _datumaro,
         "kitti_raw": _kitti_raw,
@@ -331,10 +439,15 @@ def read_dataset(path, format_name, cancelled=None):
         ET.ParseError,
     ) as error:
         raise ValueError(
-            f"Invalid {EXPORT_FORMATS[format_name]} annotations: {error}"
+            QCoreApplication.translate(
+                "Messages", "Invalid {0} annotations: {1}"
+            ).format(EXPORT_FORMATS[format_name], error)
         ) from error
     if not frames:
         raise ValueError(
-            "No point cloud frames found in the annotation archive."
+            QCoreApplication.translate(
+                "Messages",
+                "No point cloud frames found in the annotation archive.",
+            )
         )
     return classes, frames

@@ -1,5 +1,7 @@
 """Compare View widget for split-screen image comparison."""
 
+from PyQt6.QtCore import QCoreApplication
+
 import os
 import os.path as osp
 from typing import Optional
@@ -117,7 +119,10 @@ class CompareViewManager(QtCore.QObject):
         if not compare_path:
             self._clear_compare_pixmap()
             self.status_message.emit(
-                f"No matching compare image for: {basename}", 3000
+                QCoreApplication.translate(
+                    "Messages", "No matching compare image for: {0}"
+                ).format(basename),
+                3000,
             )
             return False
 
@@ -141,7 +146,9 @@ class CompareViewManager(QtCore.QObject):
         if pixmap.isNull():
             self._clear_compare_pixmap()
             self.status_message.emit(
-                f"Failed to load compare image: {osp.basename(image_path)}",
+                QCoreApplication.translate(
+                    "Messages", "Failed to load compare image: {0}"
+                ).format(osp.basename(image_path)),
                 3000,
             )
             return False
@@ -157,8 +164,15 @@ class CompareViewManager(QtCore.QObject):
         ):
             self._clear_compare_pixmap()
             self.status_message.emit(
-                f"Size mismatch: compare image {pixmap.width()}x{pixmap.height()} "
-                f"vs main {main_pixmap.width()}x{main_pixmap.height()}",
+                QCoreApplication.translate(
+                    "Messages",
+                    "Size mismatch: compare image {0}x{1} vs main {2}x{3}",
+                ).format(
+                    pixmap.width(),
+                    pixmap.height(),
+                    main_pixmap.width(),
+                    main_pixmap.height(),
+                ),
                 5000,
             )
             return False
@@ -232,7 +246,7 @@ class CompareViewSlider(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(5, 2, 5, 2)
 
-        self._left_label = QtWidgets.QLabel("Original")
+        self._left_label = QtWidgets.QLabel(self.tr("Original"))
         self._left_label.setStyleSheet("color: #666; font-size: 11px;")
         layout.addWidget(self._left_label)
 
@@ -244,7 +258,7 @@ class CompareViewSlider(QtWidgets.QWidget):
         self._slider.valueChanged.connect(self._on_slider_changed)
         layout.addWidget(self._slider, 1)
 
-        self._right_label = QtWidgets.QLabel("Compare")
+        self._right_label = QtWidgets.QLabel(self.tr("Compare"))
         self._right_label.setStyleSheet("color: #666; font-size: 11px;")
         layout.addWidget(self._right_label)
 
@@ -255,7 +269,7 @@ class CompareViewSlider(QtWidgets.QWidget):
         t = get_theme()
         self._close_btn = QtWidgets.QToolButton()
         self._close_btn.setText("\u00d7")
-        self._close_btn.setToolTip("Close Compare View")
+        self._close_btn.setToolTip(self.tr("Close Compare View"))
         self._close_btn.setStyleSheet(f"""
             QToolButton {{
                 background-color: {t["surface"]};

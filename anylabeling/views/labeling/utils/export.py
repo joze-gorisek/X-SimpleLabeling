@@ -155,12 +155,20 @@ def _get_yolo_source_root(filename, last_open_dir):
 
 def _validate_yolo_export_path(source_root, save_path):
     if not save_path:
-        raise ValueError("Please select an export root directory.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Please select an export root directory."
+            )
+        )
 
     source_root = osp.realpath(source_root)
     save_path = osp.realpath(save_path)
     if osp.exists(save_path) and not osp.isdir(save_path):
-        raise ValueError("The export root path must be a directory.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "The export root path must be a directory."
+            )
+        )
 
     try:
         common_path = osp.commonpath((source_root, save_path))
@@ -168,13 +176,17 @@ def _validate_yolo_export_path(source_root, save_path):
         return
     if common_path == source_root:
         raise ValueError(
-            "The export root directory cannot be the loaded image directory "
-            "or one of its subdirectories."
+            QCoreApplication.translate(
+                "Messages",
+                "The export root directory cannot be the loaded image directory or one of its subdirectories.",
+            )
         )
     if common_path == save_path:
         raise ValueError(
-            "The export root directory cannot contain the loaded image "
-            "directory."
+            QCoreApplication.translate(
+                "Messages",
+                "The export root directory cannot contain the loaded image directory.",
+            )
         )
 
 
@@ -195,9 +207,14 @@ def _get_yolo_export_files(image_list, source_root, save_path):
         destination_key = osp.normcase(osp.normpath(relative_label_path))
         if destination_key in label_destinations:
             raise ValueError(
-                "Multiple images map to the same YOLO label file "
-                f"'{relative_label_path}':\n"
-                f"{label_destinations[destination_key]}\n{image_file}"
+                QCoreApplication.translate(
+                    "Messages",
+                    "Multiple images map to the same YOLO label file '{0}':\n{1}\n{2}",
+                ).format(
+                    relative_label_path,
+                    label_destinations[destination_key],
+                    image_file,
+                )
             )
         label_destinations[destination_key] = image_file
         export_files.append(
@@ -727,7 +744,7 @@ def export_voc_annotation(self, mode):
         popup.show_popup(self, popup_height=65, position="center")
 
     except Exception as e:
-        message = f"Error occurred while exporting annotations: {str(e)}"
+        message = self.tr("Error occurred while exporting annotations: %s") % e
         progress_dialog.close()
         logger.error(message)
         popup = Popup(
@@ -743,7 +760,7 @@ def export_coco_annotation(self, mode):
         return
 
     if mode == "pose":
-        filter = "Classes Files (*.yaml);;All Files (*)"
+        filter = self.tr("Classes Files (*.yaml);;All Files (*)")
         self.yaml_file, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             self.tr("Select a specific coco-pose config file"),
@@ -764,7 +781,7 @@ def export_coco_annotation(self, mode):
             popup.show_popup(self, popup_height=65, position="center")
             return
     elif mode in ["rectangle", "polygon"]:
-        filter = "Classes Files (*.txt);;All Files (*)"
+        filter = self.tr("Classes Files (*.txt);;All Files (*)")
         self.classes_file, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             self.tr("Select a specific classes file"),
@@ -906,7 +923,8 @@ def export_coco_annotation(self, mode):
             popup.show_popup(self, popup_height=65, position="center")
         else:
             message = (
-                f"Error occurred while exporting annotations: {str(error_msg)}"
+                self.tr("Error occurred while exporting annotations: %s")
+                % error_msg
             )
             logger.error(message)
             popup = Popup(
@@ -928,7 +946,7 @@ def export_dota_annotation(self):
     if not _check_filename_exist(self):
         return
 
-    filter = "Classes Files (*.txt);;All Files (*)"
+    filter = self.tr("Classes Files (*.txt);;All Files (*)")
     self.classes_file, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific classes file"),
@@ -1089,7 +1107,7 @@ def export_dota_annotation(self):
         popup.show_popup(self, popup_height=65, position="center")
 
     except Exception as e:
-        message = f"Error occurred while exporting annotations: {str(e)}"
+        message = self.tr("Error occurred while exporting annotations: %s") % e
         progress_dialog.close()
         logger.error(message)
         popup = Popup(
@@ -1141,7 +1159,7 @@ def export_mask_annotation(self):
     if not _check_filename_exist(self):
         return
 
-    filter = "JSON Files (*.json);;All Files (*)"
+    filter = self.tr("JSON Files (*.json);;All Files (*)")
     color_map_file, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific color_map file"),
@@ -1310,7 +1328,7 @@ def export_mask_annotation(self):
         popup.show_popup(self, popup_height=65, position="center")
 
     except Exception as e:
-        message = f"Error occurred while exporting annotations: {str(e)}"
+        message = self.tr("Error occurred while exporting annotations: %s") % e
         progress_dialog.close()
         logger.error(message)
         popup = Popup(
@@ -1327,7 +1345,7 @@ def export_mot_annotation(self, mode):
 
     converter = LabelConverter()
     if mode in ["mot", "mots", "odvg"]:
-        filter = "Classes Files (*.txt);;All Files (*)"
+        filter = self.tr("Classes Files (*.txt);;All Files (*)")
         self.classes_file, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             self.tr("Select a specific classes file"),
@@ -1467,7 +1485,8 @@ def export_mot_annotation(self, mode):
             popup.show_popup(self, popup_height=65, position="center")
         else:
             message = (
-                f"Error occurred while exporting annotations: {str(error_msg)}"
+                self.tr("Error occurred while exporting annotations: %s")
+                % error_msg
             )
             logger.error(message)
             popup = Popup(
@@ -1664,7 +1683,7 @@ def export_pporc_annotation(self, mode):
         popup.show_popup(self, popup_height=65, position="center")
 
     except Exception as e:
-        message = f"Error occurred while exporting annotations: {str(e)}"
+        message = self.tr("Error occurred while exporting annotations: %s") % e
         progress_dialog.close()
         logger.error(message)
         popup = Popup(
@@ -1713,7 +1732,7 @@ def export_vlm_r1_ovd_annotation(self):
             dialog,
             self.tr("Select Export File"),
             path_edit.text(),
-            "JSONL Files (*.jsonl)",
+            self.tr("JSONL Files (*.jsonl)"),
             options=QtWidgets.QFileDialog.Option.DontUseNativeDialog,
         )
         if path:
@@ -1786,7 +1805,7 @@ def export_vlm_r1_ovd_annotation(self):
     )
 
     def _handle_class_file_upload():
-        filter = "Classes Files (*.txt);;All Files (*)"
+        filter = self.tr("Classes Files (*.txt);;All Files (*)")
         classes_file, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             self.tr("Select a specific classes file"),
@@ -1927,7 +1946,10 @@ def export_vlm_r1_ovd_annotation(self):
                 )
                 popup.show_popup(self, popup_height=65, position="center")
             else:
-                message = f"Error occurred while exporting annotations: {str(error_msg)}"
+                message = (
+                    self.tr("Error occurred while exporting annotations: %s")
+                    % error_msg
+                )
                 logger.error(message)
                 popup = Popup(
                     message,
@@ -1944,7 +1966,7 @@ def export_vlm_r1_ovd_annotation(self):
         progress_dialog.canceled.connect(self.export_thread.terminate)
 
     except Exception as e:
-        message = f"Error occurred while exporting annotations: {str(e)}"
+        message = self.tr("Error occurred while exporting annotations: %s") % e
         progress_dialog.close()
         logger.error(message)
         popup = Popup(

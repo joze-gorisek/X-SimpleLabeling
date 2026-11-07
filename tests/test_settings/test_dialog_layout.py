@@ -1,6 +1,7 @@
 import copy
 import os
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -59,11 +60,12 @@ class TestSettingsDialogLayout(unittest.TestCase):
         dialog._render_primary("Canvas")
         combos = dialog.findChildren(QtWidgets.QComboBox)
         editor = next(
-            combo for combo in combos
-            if combo.findData("traditional") >= 0
+            combo for combo in combos if combo.findData("traditional") >= 0
         )
         self.assertEqual(editor.currentData(), "direct")
-        self.assertEqual(editor.itemText(editor.findData("direct")), "Direct Zoom")
+        self.assertEqual(
+            editor.itemText(editor.findData("direct")), "Direct Zoom"
+        )
         editor.setCurrentIndex(editor.findData("traditional"))
         self.assertEqual(editor.currentData(), "traditional")
 
@@ -341,3 +343,23 @@ class TestSettingsDialogLayout(unittest.TestCase):
         self.app.processEvents()
 
         self.assertEqual(controller.get_value("model_hub"), initial_value)
+
+
+class TestSettingsDialogSlovenian(unittest.TestCase):
+    def test_field_titles_translate_only_for_slovenian(self):
+        app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+        field = SimpleNamespace(label="Auto Highlight Shape")
+        dialog = SimpleNamespace(tr=lambda text: f"sl:{text}")
+        try:
+            app.setProperty("xanylabeling_language", "sl_SI")
+            self.assertEqual(
+                SettingsDialog._display_field_title(dialog, field, None),
+                "sl:Auto Highlight Shape",
+            )
+            app.setProperty("xanylabeling_language", "zh_CN")
+            self.assertEqual(
+                SettingsDialog._display_field_title(dialog, field, None),
+                "Auto Highlight Shape",
+            )
+        finally:
+            app.setProperty("xanylabeling_language", None)

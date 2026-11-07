@@ -41,7 +41,7 @@ class DropZone(QFrame):
         if icon is not None and not icon.isNull():
             self.icon_label.setPixmap(icon.pixmap(QSize(64, 64)))
         else:
-            self.icon_label.setText("Video")
+            self.icon_label.setText(self.tr("Video"))
         layout.addWidget(self.icon_label, 0, Qt.AlignmentFlag.AlignCenter)
 
         self.title_label = QLabel(
@@ -118,7 +118,7 @@ class DropZone(QFrame):
             self,
             self.tr("Open video"),
             "",
-            SUPPORTED_VIDEO_FILTER,
+            self.tr(SUPPORTED_VIDEO_FILTER),
         )
         if path:
             self.videoSelected.emit(path)

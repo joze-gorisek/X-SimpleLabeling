@@ -38,8 +38,8 @@ class YOLOv5_ResNet(YOLO):
             raise FileNotFoundError(
                 QCoreApplication.translate(
                     "Model",
-                    f"Could not download or initialize {self.config['type']} model.",
-                )
+                    "Could not download or initialize {model_name} model.",
+                ).format(model_name=self.config["type"])
             )
         self.cls_net = OnnxBaseModel(model_abs_path, __preferred_device__)
         self.cls_classes = self.config["cls_classes"]
@@ -51,8 +51,8 @@ class YOLOv5_ResNet(YOLO):
             raise FileNotFoundError(
                 QCoreApplication.translate(
                     "Model",
-                    f"Could not download or initialize {self.config['type']} model.",
-                )
+                    "Could not download or initialize {model_name} model.",
+                ).format(model_name=self.config["type"])
             )
         self.net = OnnxBaseModel(model_abs_path, __preferred_device__)
         _, _, self.input_height, self.input_width = self.net.get_input_shape()

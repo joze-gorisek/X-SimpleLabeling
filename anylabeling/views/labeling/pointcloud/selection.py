@@ -1,5 +1,7 @@
 """Screen-space selection using the renderer's square pixel footprints."""
 
+from PyQt6.QtCore import QCoreApplication
+
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -81,7 +83,11 @@ class SelectionSnapshot:
         surface_owners=None,
     ):
         if mode not in ("surface", "through"):
-            raise ValueError("Unknown depth selection mode")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unknown depth selection mode"
+                )
+            )
         sizes = None
         if np.ndim(point_size):
             sizes = np.maximum(1, np.asarray(point_size, dtype=np.int32))
@@ -379,17 +385,33 @@ def select_brush(snapshot, start, end, radius):
 def validate_polygon(vertices):
     polygon = np.asarray(vertices, dtype=float)
     if polygon.ndim != 2 or polygon.shape[1] != 2 or len(polygon) < 3:
-        raise ValueError("A polygon needs at least three vertices.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "A polygon needs at least three vertices."
+            )
+        )
     if not np.isfinite(polygon).all():
-        raise ValueError("Polygon vertices must be finite.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Polygon vertices must be finite."
+            )
+        )
     if len(np.unique(polygon, axis=0)) != len(polygon):
-        raise ValueError("Polygon vertices must be distinct.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Polygon vertices must be distinct."
+            )
+        )
     following = np.roll(polygon, -1, axis=0)
     area = np.sum(
         polygon[:, 0] * following[:, 1] - following[:, 0] * polygon[:, 1]
     )
     if abs(area) < 1e-7:
-        raise ValueError("The polygon must have a nonzero area.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "The polygon must have a nonzero area."
+            )
+        )
 
     def orientation(a, b, c):
         return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
@@ -410,7 +432,10 @@ def validate_polygon(vertices):
                 and orientation(c, d, a) * orientation(c, d, b) <= 0
             ):
                 raise ValueError(
-                    "Self-intersecting polygons are not supported."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Self-intersecting polygons are not supported.",
+                    )
                 )
     return polygon
 

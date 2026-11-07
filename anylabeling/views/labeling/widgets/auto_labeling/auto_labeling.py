@@ -56,6 +56,36 @@ from anylabeling.views.labeling.widgets.searchable_model_dropdown import (
 )
 
 
+DEFAULT_MODEL_NAME = "sam2_hiera_small-r20240801"
+
+# Model types offered in the model dropdown: the ones that output polygons
+# for individual instances on single images.
+INSTANCE_SEGMENTATION_MODEL_TYPES = frozenset(
+    {
+        "dfine_seg",
+        "edge_sam",
+        "efficientvit_sam",
+        "grounding_sam",
+        "grounding_sam2",
+        "rfdetr_seg",
+        "sam_hq",
+        "sam_med2d",
+        "segment_anything",
+        "segment_anything_2",
+        "segment_anything_3",
+        "yolo11_seg",
+        "yolo26_seg",
+        "yolov5_sam",
+        "yolov5_seg",
+        "yolov8_sam2",
+        "yolov8_seg",
+    }
+)
+
+# Output is always polygons, so the output selector is never shown.
+ALWAYS_HIDDEN_WIDGETS = frozenset({"output_label", "output_select_combobox"})
+
+
 def update_model_selection_scroll_area_height(scroll_area):
     content_widget = scroll_area.widget()
     if content_widget is None:
@@ -348,7 +378,7 @@ class AutoLabelingWidget(QWidget):
         self.button_finish_object.clicked.connect(self.on_finish_clicked)
 
         # --- Configuration for: button_auto_decode ---
-        self.button_auto_decode.setText("AMD")
+        self.button_auto_decode.setText(self.tr("AMD"))
         self.button_auto_decode.setStyleSheet(get_normal_button_style())
         self.button_auto_decode.clicked.connect(self.on_auto_decode_toggled)
         self.button_auto_decode.setToolTip(
@@ -573,8 +603,10 @@ class AutoLabelingWidget(QWidget):
             model_name = model_dict["name"]
             if model_dict.get("is_custom_model", False):
                 provider_name = "Custom"
-            else:
+            elif model_dict.get("type") in INSTANCE_SEGMENTATION_MODEL_TYPES:
                 provider_name = model_dict.get("provider", "Others")
+            else:
+                continue
 
             if provider_name not in model_data:
                 model_data[provider_name] = {}
@@ -602,6 +634,20 @@ class AutoLabelingWidget(QWidget):
                     else model_dict["config_file"]
                 ),
             }
+
+        # The merge above also copies saved entries of models excluded here.
+        for provider_name in list(model_data):
+            if provider_name == "Custom":
+                continue
+            models = {
+                name: data
+                for name, data in model_data[provider_name].items()
+                if name in self.model_info
+            }
+            if models:
+                model_data[provider_name] = models
+            else:
+                del model_data[provider_name]
 
         # Sort the collected model_data
         sorted_model_data = self._sort_model_data(model_data)
@@ -634,6 +680,10 @@ class AutoLabelingWidget(QWidget):
             sorted_inner_items = sorted(inner_dict.items(), key=inner_sort_key)
             sorted_data[key] = collections.OrderedDict(sorted_inner_items)
         return sorted_data
+
+    def load_default_model(self):
+        """Select and load the model the app starts with."""
+        self.model_dropdown.select_model(DEFAULT_MODEL_NAME)
 
     def show_model_dropdown(self):
         """Show the model dropdown"""
@@ -818,7 +868,7 @@ class AutoLabelingWidget(QWidget):
             # Open file dialog to select "config.yaml" file for model
             file_dialog = QFileDialog(self)
             file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
-            file_dialog.setNameFilter("Config file (*.yaml)")
+            file_dialog.setNameFilter(self.tr("Config file (*.yaml)"))
 
             if file_dialog.exec():
                 config_file = file_dialog.selectedFiles()[0]
@@ -875,8 +925,8 @@ class AutoLabelingWidget(QWidget):
         self.upn_select_combobox.clear()
         # Define modes with display names
         modes = {
-            "coarse_grained_prompt": "Coarse Grained",
-            "fine_grained_prompt": "Fine Grained",
+            "coarse_grained_prompt": self.tr("Coarse Grained"),
+            "fine_grained_prompt": self.tr("Fine Grained"),
         }
         # Add modes to combobox
         for mode, display_name in modes.items():
@@ -901,20 +951,20 @@ class AutoLabelingWidget(QWidget):
         self.florence2_select_combobox.clear()
         # Define modes with display names
         modes = {
-            "caption": "Caption",
-            "detailed_cap": "Detailed Caption",
-            "more_detailed_cap": "More Detailed Caption",
-            "od": "Object Detection",
-            "region_proposal": "Region Proposal",
-            "dense_region_cap": "Dense Region Caption",
-            "refer_exp_seg": "Refer-Exp Segmentation",
-            "region_to_seg": "Region to Segmentation",
-            "ovd": "OVD",
-            "cap_to_pg": "Caption to Parse Grounding",
-            "region_to_cat": "Region to Category",
-            "region_to_desc": "Region to Description",
-            "ocr": "OCR",
-            "ocr_with_region": "OCR with Region",
+            "caption": self.tr("Caption"),
+            "detailed_cap": self.tr("Detailed Caption"),
+            "more_detailed_cap": self.tr("More Detailed Caption"),
+            "od": self.tr("Object Detection"),
+            "region_proposal": self.tr("Region Proposal"),
+            "dense_region_cap": self.tr("Dense Region Caption"),
+            "refer_exp_seg": self.tr("Refer-Exp Segmentation"),
+            "region_to_seg": self.tr("Region to Segmentation"),
+            "ovd": self.tr("OVD"),
+            "cap_to_pg": self.tr("Caption to Parse Grounding"),
+            "region_to_cat": self.tr("Region to Category"),
+            "region_to_desc": self.tr("Region to Description"),
+            "ocr": self.tr("OCR"),
+            "ocr_with_region": self.tr("OCR with Region"),
         }
         # Add modes to combobox
         for mode, display_name in modes.items():
@@ -1241,9 +1291,13 @@ class AutoLabelingWidget(QWidget):
             self.output_select_combobox.addItem(
                 display_name, userData=output_mode
             )
-        self.output_select_combobox.setCurrentIndex(
-            self.output_select_combobox.findData(default_output_mode)
+        output_mode = (
+            "polygon" if "polygon" in output_modes else default_output_mode
         )
+        self.output_select_combobox.setCurrentIndex(
+            self.output_select_combobox.findData(output_mode)
+        )
+        self.model_manager.set_output_mode(output_mode)
 
         # Reconnect onIndexChanged signal
         self.output_select_combobox.currentIndexChanged.connect(
@@ -1258,6 +1312,8 @@ class AutoLabelingWidget(QWidget):
             return
         widgets = model_config["model"].get_required_widgets()
         for widget_name in widgets:
+            if widget_name in ALWAYS_HIDDEN_WIDGETS:
+                continue
             if hasattr(self, widget_name):
                 getattr(self, widget_name).show()
             else:
@@ -1523,7 +1579,7 @@ class AutoLabelingWidget(QWidget):
             getattr(self, widget_name).hide()
 
         if mode in ["ovd", "cap_to_pg", "refer_exp_seg"]:
-            self.edit_text.setPlaceholderText("Enter prompt here...")
+            self.edit_text.setPlaceholderText(self.tr("Enter prompt here..."))
 
         # Show only the widgets needed for current mode
         if mode in mode_widgets:
@@ -1541,7 +1597,7 @@ class AutoLabelingWidget(QWidget):
                 self.toggle_preserve_existing_annotations.setText(
                     preserve_text
                 )
-                preserve_state = preserve_text == "Replace (Off)"
+                preserve_state = preserve_text == self.tr("Replace (Off)")
                 self.toggle_preserve_existing_annotations.setChecked(
                     preserve_state
                 )

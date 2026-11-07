@@ -567,7 +567,7 @@ class BatchProcessingThread(QThread):
                 completed = self.image_index - start_index
                 self.progress_updated.emit(
                     completed,
-                    f"Progress: {completed}/{image_count}",
+                    self.tr("Progress: %d/%d") % (completed, image_count),
                 )
 
             self.app.image_index = self.image_index
@@ -714,7 +714,7 @@ def process_next_image(self, progress_dialog, batch=True):
             completed = self.image_index - self._batch_start_index
             progress_dialog.setValue(completed)
             progress_dialog.setLabelText(
-                f"Progress: {completed}/{image_count}"
+                self.tr("Progress: %d/%d") % (completed, image_count)
             )
             QApplication.processEvents()
 
@@ -759,7 +759,7 @@ def show_progress_dialog_and_process(self):
     progress_dialog.setAutoReset(False)
 
     progress_dialog.setValue(0)
-    progress_dialog.setLabelText(f"Progress: 0/{image_count}")
+    progress_dialog.setLabelText(self.tr("Progress: %d/%d") % (0, image_count))
     progress_bar = progress_dialog.findChild(QtWidgets.QProgressBar)
 
     if progress_bar:

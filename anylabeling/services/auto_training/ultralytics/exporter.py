@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import ast
 import os
 import re
@@ -80,20 +82,29 @@ def _resolve_model_type(model_hint, task):
     )
     if family is None:
         raise ValueError(
-            "Unable to determine the Ultralytics model family from the "
-            "training experiment"
+            QCoreApplication.translate(
+                "Messages",
+                "Unable to determine the Ultralytics model family from the training experiment",
+            )
         )
 
     suffix = _TASK_SUFFIXES.get(task)
     if suffix is None:
-        raise ValueError(f"Unsupported training task: {task}")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Unsupported training task: {0}"
+            ).format(task)
+        )
     model_type = f"{family}{suffix}"
 
     from anylabeling.services.auto_labeling import _CUSTOM_MODELS
 
     if model_type not in _CUSTOM_MODELS:
         raise ValueError(
-            f"X-AnyLabeling does not support loading {family} {task} models"
+            QCoreApplication.translate(
+                "Messages",
+                "X-AnyLabeling does not support loading {0} {1} models",
+            ).format(family, task)
         )
     return model_type
 
@@ -104,7 +115,11 @@ def create_auto_labeling_config(
     project_path = os.path.abspath(project_path)
     exported_path = os.path.abspath(exported_path)
     if not os.path.isfile(exported_path):
-        raise ValueError(f"Exported ONNX model not found: {exported_path}")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Exported ONNX model not found: {0}"
+            ).format(exported_path)
+        )
 
     training_args = load_yaml_config(os.path.join(project_path, "args.yaml"))
     if not isinstance(training_args, dict):
@@ -165,7 +180,10 @@ def create_auto_labeling_config(
         )
         if not isinstance(pose_classes, dict) or not pose_classes:
             raise ValueError(
-                "A valid pose configuration is required to load this model"
+                QCoreApplication.translate(
+                    "Messages",
+                    "A valid pose configuration is required to load this model",
+                )
             )
         config.update(
             {
@@ -179,12 +197,20 @@ def create_auto_labeling_config(
     elif task == "classify":
         class_names = _ordered_names(names)
         if not class_names:
-            raise ValueError("Unable to determine the model classes")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unable to determine the model classes"
+                )
+            )
         config["classes"] = dict(enumerate(class_names))
     else:
         class_names = _ordered_names(names)
         if not class_names:
-            raise ValueError("Unable to determine the model classes")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unable to determine the model classes"
+                )
+            )
         config.update(
             {
                 "conf_threshold": 0.25,
@@ -196,7 +222,11 @@ def create_auto_labeling_config(
 
     config_path = os.path.join(project_path, f"{experiment_name}.yaml")
     if not save_yaml_config(config, config_path):
-        raise OSError(f"Failed to save model configuration: {config_path}")
+        raise OSError(
+            QCoreApplication.translate(
+                "Messages", "Failed to save model configuration: {0}"
+            ).format(config_path)
+        )
     return config_path
 
 
@@ -426,11 +456,15 @@ class ExportManager:
         self, project_path: str, export_format: str = "onnx"
     ) -> Tuple[bool, str]:
         if self.is_exporting:
-            return False, "Export already in progress"
+            return False, QCoreApplication.translate(
+                "Messages", "Export already in progress"
+            )
 
         weights_path = os.path.join(project_path, "weights", "best.pt")
         if not self.external_environment and not os.path.exists(weights_path):
-            return False, f"Model weights not found at: {weights_path}"
+            return False, QCoreApplication.translate(
+                "Messages", "Model weights not found at: {0}"
+            ).format(weights_path)
 
         self.is_exporting = True
         self.stop_event.clear()
@@ -443,7 +477,9 @@ class ExportManager:
             target=target, args=(weights_path, export_format), daemon=True
         )
         self.export_thread.start()
-        return True, "Export started successfully"
+        return True, QCoreApplication.translate(
+            "Messages", "Export started successfully"
+        )
 
     def _external_export_worker(self, weights_path: str, export_format: str):
         payload_path = create_worker_payload(
@@ -475,7 +511,11 @@ class ExportManager:
             )
             terminal_event_seen = False
             if self.export_process.stdout is None:
-                raise RuntimeError("Export process output is unavailable")
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        "Messages", "Export process output is unavailable"
+                    )
+                )
             for output in self.export_process.stdout:
                 terminal_event_seen = (
                     parse_worker_output(
@@ -488,9 +528,13 @@ class ExportManager:
             return_code = self.export_process.wait()
             if not terminal_event_seen and not self.stop_event.is_set():
                 error = (
-                    f"Export process exited with code {return_code}"
+                    QCoreApplication.translate(
+                        "Messages", "Export process exited with code {0}"
+                    ).format(return_code)
                     if return_code
-                    else "Export process returned no result"
+                    else QCoreApplication.translate(
+                        "Messages", "Export process returned no result"
+                    )
                 )
                 self.notify_callbacks(
                     "export_error",
@@ -523,14 +567,21 @@ class ExportManager:
                 {"weights_path": weights_path, "format": export_format},
             )
             self.notify_callbacks(
-                "export_log", {"message": "Checking export environment..."}
+                "export_log",
+                {
+                    "message": QCoreApplication.translate(
+                        "Messages", "Checking export environment..."
+                    )
+                },
             )
             missing_packages = get_export_validator(export_format)()
             if missing_packages:
                 self.notify_callbacks(
                     "export_log",
                     {
-                        "message": f"Missing required packages: {', '.join(missing_packages)}"
+                        "message": QCoreApplication.translate(
+                            "Messages", "Missing required packages: {0}"
+                        ).format(", ".join(missing_packages))
                     },
                 )
                 if not self.auto_install_packages:
@@ -541,32 +592,50 @@ class ExportManager:
                         "export_error",
                         {
                             "error": (
-                                "Missing required packages: "
-                                f"{', '.join(missing_packages)}. "
-                                f"Install them with: {command}"
+                                QCoreApplication.translate(
+                                    "Messages",
+                                    "Missing required packages: {0}. Install them with: {1}",
+                                ).format(", ".join(missing_packages), command)
                             )
                         },
                     )
                     return
                 self.notify_callbacks(
                     "export_log",
-                    {"message": "Attempting to install missing packages..."},
+                    {
+                        "message": QCoreApplication.translate(
+                            "Messages",
+                            "Attempting to install missing packages...",
+                        )
+                    },
                 )
                 success, stdout, stderr = install_packages_with_timeout(
                     missing_packages, timeout=1800
                 )
                 if not success:
-                    error_msg = f"Failed to install required packages: {', '.join(missing_packages)}. Please manually install these packages and restart the application."
+                    error_msg = QCoreApplication.translate(
+                        "Messages",
+                        "Failed to install required packages: {0}. Please manually install these packages and restart the application.",
+                    ).format(", ".join(missing_packages))
                     self.notify_callbacks("export_error", {"error": error_msg})
                     return
                 self.notify_callbacks(
                     "export_log",
-                    {"message": "Required packages installed successfully"},
+                    {
+                        "message": QCoreApplication.translate(
+                            "Messages",
+                            "Required packages installed successfully",
+                        )
+                    },
                 )
             else:
                 self.notify_callbacks(
                     "export_log",
-                    {"message": "All required packages are available"},
+                    {
+                        "message": QCoreApplication.translate(
+                            "Messages", "All required packages are available"
+                        )
+                    },
                 )
 
             original_stdout = sys.stdout
@@ -581,14 +650,20 @@ class ExportManager:
 
                 self.notify_callbacks(
                     "export_log",
-                    {"message": f"Loading model from {weights_path}"},
+                    {
+                        "message": QCoreApplication.translate(
+                            "Messages", "Loading model from {0}"
+                        ).format(weights_path)
+                    },
                 )
                 model = YOLO(weights_path)
 
                 self.notify_callbacks(
                     "export_log",
                     {
-                        "message": f"Starting export to {export_format} format..."
+                        "message": QCoreApplication.translate(
+                            "Messages", "Starting export to {0} format..."
+                        ).format(export_format)
                     },
                 )
                 results = model.export(format=export_format)
@@ -629,18 +704,30 @@ class ExportManager:
                         self.notify_callbacks(
                             "export_error",
                             {
-                                "error": "Export completed but output file not found"
+                                "error": QCoreApplication.translate(
+                                    "Messages",
+                                    "Export completed but output file not found",
+                                )
                             },
                         )
 
             except ImportError as e:
                 self.notify_callbacks(
                     "export_error",
-                    {"error": f"Failed to import ultralytics: {str(e)}"},
+                    {
+                        "error": QCoreApplication.translate(
+                            "Messages", "Failed to import ultralytics: {0}"
+                        ).format(str(e))
+                    },
                 )
             except Exception as e:
                 self.notify_callbacks(
-                    "export_error", {"error": f"Export failed: {str(e)}"}
+                    "export_error",
+                    {
+                        "error": QCoreApplication.translate(
+                            "Messages", "Export failed: {0}"
+                        ).format(str(e))
+                    },
                 )
             finally:
                 sys.stdout = original_stdout
@@ -652,7 +739,11 @@ class ExportManager:
         except Exception as e:
             self.notify_callbacks(
                 "export_error",
-                {"error": f"Unexpected error during export: {str(e)}"},
+                {
+                    "error": QCoreApplication.translate(
+                        "Messages", "Unexpected error during export: {0}"
+                    ).format(str(e))
+                },
             )
         finally:
             self.is_exporting = False

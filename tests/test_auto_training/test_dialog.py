@@ -649,3 +649,40 @@ def test_configuring_environment_updates_training_and_export_managers():
         ("export", ("/new/python", True)),
         ("detect", ()),
     ]
+
+
+def test_device_list_translates_labels_but_keeps_values():
+    from PyQt6.QtCore import QCoreApplication
+
+    from anylabeling.resources import resources  # noqa: F401
+    from anylabeling.views.training.ultralytics_dialog import (
+        add_device_item,
+        current_device,
+        select_device,
+        translate_worker_message,
+    )
+
+    app = QApplication.instance() or QApplication([])
+    translator = QTranslator()
+    assert translator.load(":/languages/translations/sl_SI.qm")
+    app.installTranslator(translator)
+    try:
+        device = QComboBox()
+        add_device_item(device, "cuda")
+        add_device_item(device, "cpu")
+        assert device.itemText(1) == "CPE"
+        select_device(device, "cpu")
+        assert device.currentText() == "CPE"
+        assert current_device(device) == "cpu"
+        assert (
+            translate_worker_message("PyTorch is not available: no torch")
+            == "PyTorch ni na voljo: no torch"
+        )
+        assert (
+            translate_worker_message("CUDA device 3 is no longer available")
+            == "Naprava CUDA 3 ni več na voljo"
+        )
+        assert translate_worker_message("raw: output") == "raw: output"
+    finally:
+        app.removeTranslator(translator)
+    assert QCoreApplication.translate("UltralyticsDialog", "cpu") == "cpu"

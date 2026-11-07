@@ -97,7 +97,9 @@ class YOLOE(Model):
                 raise FileNotFoundError(
                     QCoreApplication.translate(
                         "Model",
-                        f"Could not download or initialize {os.path.basename(self.config[model_name])} model.",
+                        "Could not download or initialize {model_name} model.",
+                    ).format(
+                        model_name=os.path.basename(self.config[model_name])
                     )
                 )
             else:

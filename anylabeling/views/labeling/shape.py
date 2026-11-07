@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import copy
 import math
 from uuid import uuid4
@@ -174,7 +176,11 @@ class Shape:
             or any(type(value) is not int for value in linking_pair)
             for linking_pair in kie_linking
         ):
-            raise ValueError("kie_linking must be a list of integer pairs")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "kie_linking must be a list of integer pairs"
+                )
+            )
         self.kie_linking = kie_linking
         self.locked = False
         if self.shape_type == "rotation":
@@ -197,7 +203,11 @@ class Shape:
         if value is None:
             value = "polygon"
         if value not in self.get_supported_shape():
-            raise ValueError(f"Unexpected shape_type: {value}")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unexpected shape_type: {0}"
+                ).format(value)
+            )
         self._shape_type = value
 
     @staticmethod

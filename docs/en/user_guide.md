@@ -928,7 +928,7 @@ Select `Help` > `About` to view the application version and runtime environment 
   <img src="../../assets/resources/supported_languages.png" alt="X-AnyLabeling interfaces in Chinese, English, Japanese, and Korean">
 </p>
 
-Select your preferred interface language (`Chinese`, `English`, `Japanese`, or `Korean`) from the `Language` menu.
+Select your preferred interface language (`Chinese`, `English`, `Japanese`, `Korean`, or `Slovenian`) from the `Language` menu or the language button at the top right of the window. The choice is saved and used the next time the application starts.
 
 **Important:** The application will restart automatically after changing the language. Save your work before switching languages to avoid data loss.
 

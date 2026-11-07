@@ -49,8 +49,8 @@ class PPOCRv4(Model):
             raise FileNotFoundError(
                 QCoreApplication.translate(
                     "Model",
-                    f"Could not download or initialize {model_task} model.",
-                )
+                    "Could not download or initialize {model_name} model.",
+                ).format(model_name=model_task)
             )
 
         self.sess_opts = ort.SessionOptions()

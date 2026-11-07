@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -17,7 +19,11 @@ from .icons import center_pixmap, get_icon
 def load_calibration(path):
     path = Path(path)
     if path.suffix.lower() != ".json":
-        raise ValueError("Calibration must be a JSON file.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Calibration must be a JSON file."
+            )
+        )
     data = json.loads(path.read_text(encoding="utf-8"))
     fields = {
         "schema_version",
@@ -29,21 +35,35 @@ def load_calibration(path):
         "distortion_coefficients",
     }
     if not isinstance(data, dict):
-        raise ValueError("Calibration must be a JSON object.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Calibration must be a JSON object."
+            )
+        )
     missing = fields - data.keys()
     if missing:
         raise ValueError(
-            f"Missing calibration fields: {', '.join(sorted(missing))}"
+            QCoreApplication.translate(
+                "Messages", "Missing calibration fields: {0}"
+            ).format(", ".join(sorted(missing)))
         )
     unknown = data.keys() - fields
     if unknown:
         raise ValueError(
-            f"Unknown calibration fields: {', '.join(sorted(unknown))}"
+            QCoreApplication.translate(
+                "Messages", "Unknown calibration fields: {0}"
+            ).format(", ".join(sorted(unknown)))
         )
     if type(data["schema_version"]) is not int or data["schema_version"] != 1:
-        raise ValueError("schema_version must be 1.")
+        raise ValueError(
+            QCoreApplication.translate("Messages", "schema_version must be 1.")
+        )
     if data["camera_model"] != "pinhole":
-        raise ValueError("camera_model must be pinhole.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "camera_model must be pinhole."
+            )
+        )
     size = data["image_size"]
     if (
         not isinstance(size, list)
@@ -51,12 +71,19 @@ def load_calibration(path):
         or any(type(value) is not int or value <= 0 for value in size)
     ):
         raise ValueError(
-            "image_size must contain positive integer width and height."
+            QCoreApplication.translate(
+                "Messages",
+                "image_size must contain positive integer width and height.",
+            )
         )
     data["image_size"] = tuple(size)
     model = data["distortion_model"]
     if model not in ("none", "opencv5"):
-        raise ValueError("distortion_model must be none or opencv5.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "distortion_model must be none or opencv5."
+            )
+        )
     for name, shape in (
         ("camera_matrix", (3, 3)),
         ("T_pointcloud_to_camera", (4, 4)),
@@ -69,7 +96,10 @@ def load_calibration(path):
             or not np.isfinite(value).all()
         ):
             raise ValueError(
-                f"{name} must contain finite numbers with shape {shape}."
+                QCoreApplication.translate(
+                    "Messages",
+                    "{0} must contain finite numbers with shape {1}.",
+                ).format(name, shape)
             )
         data[name] = value.astype(np.float64)
     intrinsic = data["camera_matrix"]
@@ -81,8 +111,10 @@ def load_calibration(path):
         or not np.array_equal(intrinsic[2], [0, 0, 1])
     ):
         raise ValueError(
-            "camera_matrix must be [[fx, 0, cx], [0, fy, cy], [0, 0, 1]] "
-            "with positive focal lengths."
+            QCoreApplication.translate(
+                "Messages",
+                "camera_matrix must be [[fx, 0, cx], [0, fy, cy], [0, 0, 1]] with positive focal lengths.",
+            )
         )
     transform = data["T_pointcloud_to_camera"]
     rotation = transform[:3, :3]
@@ -92,8 +124,10 @@ def load_calibration(path):
         or not np.isclose(np.linalg.det(rotation), 1, rtol=0, atol=1e-5)
     ):
         raise ValueError(
-            "T_pointcloud_to_camera must be a rigid transform with a proper "
-            "rotation and last row [0, 0, 0, 1]."
+            QCoreApplication.translate(
+                "Messages",
+                "T_pointcloud_to_camera must be a rigid transform with a proper rotation and last row [0, 0, 0, 1].",
+            )
         )
     return data
 
@@ -121,7 +155,10 @@ def _project_camera_points(camera, calibration):
 def project_points(points, calibration, width, height):
     if (width, height) != calibration["image_size"]:
         raise ValueError(
-            "Image dimensions do not match calibration image_size."
+            QCoreApplication.translate(
+                "Messages",
+                "Image dimensions do not match calibration image_size.",
+            )
         )
     transform = calibration["T_pointcloud_to_camera"]
     with np.errstate(over="ignore", invalid="ignore"):
@@ -173,7 +210,10 @@ def _clip_image_segments(segments, width, height):
 def project_cuboid(cuboid, calibration, width, height):
     if (width, height) != calibration["image_size"]:
         raise ValueError(
-            "Image dimensions do not match calibration image_size."
+            QCoreApplication.translate(
+                "Messages",
+                "Image dimensions do not match calibration image_size.",
+            )
         )
     transform = calibration["T_pointcloud_to_camera"]
     camera = cuboid.corners() @ transform[:3, :3].T + transform[:3, 3]
@@ -209,11 +249,17 @@ def image_files(directory):
             continue
         if path.stem in images:
             raise ValueError(
-                f"Multiple images have the same basename: {path.stem}"
+                QCoreApplication.translate(
+                    "Messages", "Multiple images have the same basename: {0}"
+                ).format(path.stem)
             )
         images[path.stem] = path
     if not images:
-        raise ValueError("No supported images in this directory.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "No supported images in this directory."
+            )
+        )
     return images
 
 

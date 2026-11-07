@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import base64
 import datetime
 import json
@@ -115,7 +117,7 @@ def _new_visibility_icon(icon_name):
 class ChatbotDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(DEFAULT_WINDOW_TITLE)
+        self.setWindowTitle(self.tr(DEFAULT_WINDOW_TITLE))
         self.setWindowFlags(
             Qt.WindowType.Window
             | Qt.WindowType.WindowMinimizeButtonHint
@@ -139,13 +141,13 @@ class ChatbotDialog(QDialog):
 
         # Create all tooltips first to ensure they exist before any event filtering
         self.temperature_tooltip = CustomTooltip(
-            title="Recommended values:",
+            title=self.tr("Recommended values:"),
             value_pairs=[
-                ("Coding / Math", "0"),
-                ("Data Cleaning / Data Analysis", "1"),
-                ("General Conversation", "1.3"),
-                ("Translation", "1.3"),
-                ("Creative Writing / Poetry", "1.5"),
+                (self.tr("Coding / Math"), "0"),
+                (self.tr("Data Cleaning / Data Analysis"), "1"),
+                (self.tr("General Conversation"), "1.3"),
+                (self.tr("Translation"), "1.3"),
+                (self.tr("Creative Writing / Poetry"), "1.5"),
             ],
         )
         self.clear_chat_tooltip = CustomTooltip(title=self.tr("Clear Chat"))
@@ -689,7 +691,9 @@ class ChatbotDialog(QDialog):
             ChatbotDialogStyle.get_model_button_style()
         )
         self.model_button.setMinimumHeight(40)
-        self.model_button.setText(get_default_model_id(self.default_provider))
+        self.model_button.setText(
+            self.tr(get_default_model_id(self.default_provider))
+        )
         api_settings_layout.addWidget(self.model_button)
 
         self.custom_model_input = QLineEdit()
@@ -997,7 +1001,7 @@ class ChatbotDialog(QDialog):
                     ),
                     None,
                 )
-                button_text = "Select Model"
+                button_text = self.tr("Select Model")
                 if self.selected_model:
                     button_text = f"{self.selected_model} ({provider})"
                 self.model_button.setText(button_text)
@@ -1652,7 +1656,7 @@ class ChatbotDialog(QDialog):
                 return {
                     "filename": filename,
                     "content": None,
-                    "error": "Empty response",
+                    "error": self.tr("Empty response"),
                 }
 
             content = response.choices[0].message.content
@@ -1993,7 +1997,7 @@ class ChatbotDialog(QDialog):
                 self,
                 self.tr("Select Dataset File"),
                 current_dir,
-                "JSON Files (*.json)",
+                self.tr("JSON Files (*.json)"),
             )
 
             if not import_file:
@@ -2291,7 +2295,7 @@ class ChatbotDialog(QDialog):
                         stop_event.set()
                         if not self.stream_handler.get_current_message():
                             self.stream_handler.report_error(
-                                "Request cancelled by user"
+                                self.tr("Request cancelled by user")
                             )
                         self.stream_handler.finished.emit(False)
                         self.stream_handler.stop_loading()
@@ -2384,7 +2388,9 @@ class ChatbotDialog(QDialog):
             # Add error message but don't add it to chat history
             self.add_message(
                 "assistant",
-                f"Error: {error_message}",
+                QCoreApplication.translate("Messages", "Error: {0}").format(
+                    error_message
+                ),
                 delete_last_message=True,
             )
 

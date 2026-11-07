@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import os
 import re
@@ -56,7 +58,11 @@ def _natural_key(path):
 def discover_frames(directory):
     directory = Path(directory)
     if not directory.is_dir():
-        raise ValueError(f"{directory}: select a point cloud directory.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "{0}: select a point cloud directory."
+            ).format(directory)
+        )
     if (directory / "velodyne").is_dir():
         directory = directory / "velodyne"
     frames = sorted(
@@ -70,7 +76,9 @@ def discover_frames(directory):
     )
     if not frames:
         raise ValueError(
-            f"{directory}: no BIN, PLY, or PCD point cloud files found."
+            QCoreApplication.translate(
+                "Messages", "{0}: no BIN, PLY, or PCD point cloud files found."
+            ).format(directory)
         )
     return frames
 
@@ -124,7 +132,9 @@ def _check_unchanged(stream, path, before, path_before):
         or _signature(path.stat()) != path_before
     ):
         raise ValueError(
-            f"{path}: file changed during loading; retry loading."
+            QCoreApplication.translate(
+                "Messages", "{0}: file changed during loading; retry loading."
+            ).format(path)
         )
 
 
@@ -139,19 +149,29 @@ def _ply_property(fields):
         and _PLY_TYPES[fields[2]][0] in "iu"
     ):
         return fields[4], _PLY_TYPES[fields[3]], _PLY_TYPES[fields[2]]
-    raise ValueError("Unsupported PLY property declaration.")
+    raise ValueError(
+        QCoreApplication.translate(
+            "Messages", "Unsupported PLY property declaration."
+        )
+    )
 
 
 def _ply_header(stream):
     if stream.readline(256).strip() != b"ply":
-        raise ValueError("Missing PLY magic header.")
+        raise ValueError(
+            QCoreApplication.translate("Messages", "Missing PLY magic header.")
+        )
     encoding = None
     elements = []
     names = set()
     while stream.tell() < 1024 * 1024:
         line = stream.readline(65536)
         if not line:
-            raise ValueError("Incomplete PLY header.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Incomplete PLY header."
+                )
+            )
         fields = line.decode("ascii").split()
         if not fields or fields[0] in ("comment", "obj_info"):
             continue
@@ -160,43 +180,85 @@ def _ply_header(stream):
         if fields[0] == "format" and len(fields) == 3:
             if encoding is not None or fields[2] != "1.0":
                 raise ValueError(
-                    "Unsupported or repeated PLY format declaration."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Unsupported or repeated PLY format declaration.",
+                    )
                 )
             encoding = fields[1]
         elif fields[0] == "element" and len(fields) == 3:
             count = int(fields[2])
             if count < 0 or fields[1] in names:
-                raise ValueError("Invalid or duplicate PLY element.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Invalid or duplicate PLY element."
+                    )
+                )
             elements.append((fields[1], count, []))
             names.add(fields[1])
         elif fields[0] == "property" and elements:
             prop = _ply_property(fields)
             if prop[0] in {item[0] for item in elements[-1][2]}:
-                raise ValueError("Duplicate PLY property name.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Duplicate PLY property name."
+                    )
+                )
             elements[-1][2].append(prop)
         else:
-            raise ValueError("Invalid PLY header declaration.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Invalid PLY header declaration."
+                )
+            )
     else:
-        raise ValueError("PLY header exceeds 1 MiB.")
+        raise ValueError(
+            QCoreApplication.translate("Messages", "PLY header exceeds 1 MiB.")
+        )
     if encoding not in ("ascii", "binary_little_endian", "binary_big_endian"):
-        raise ValueError("Unsupported or missing PLY encoding.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Unsupported or missing PLY encoding."
+            )
+        )
     vertices = [item for item in elements if item[0] == "vertex"]
     if not vertices or vertices[0][1] == 0:
-        raise ValueError("PLY requires a nonempty vertex element.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "PLY requires a nonempty vertex element."
+            )
+        )
     properties = vertices[0][2]
     if not {"x", "y", "z"}.issubset({item[0] for item in properties}):
-        raise ValueError("PLY vertices require x, y and z properties.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "PLY vertices require x, y and z properties."
+            )
+        )
     if any(item[2] is not None for item in properties):
-        raise ValueError("List properties on PLY vertices are not supported.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages",
+                "List properties on PLY vertices are not supported.",
+            )
+        )
     if any(count and not properties for _, count, properties in elements):
-        raise ValueError("PLY elements with records require properties.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "PLY elements with records require properties."
+            )
+        )
     return encoding, elements
 
 
 def _read_exact(stream, count):
     data = stream.read(count)
     if len(data) != count:
-        raise ValueError("Truncated PLY data records.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Truncated PLY data records."
+            )
+        )
     return data
 
 
@@ -206,7 +268,11 @@ def _ascii_scalar(token, dtype):
     value = int(token)
     limits = np.iinfo(dtype)
     if not limits.min <= value <= limits.max:
-        raise ValueError("PLY integer value exceeds its declared type.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "PLY integer value exceeds its declared type."
+            )
+        )
     return value
 
 
@@ -215,7 +281,11 @@ def _skip_ply_records(stream, count, properties, encoding):
     if encoding != "ascii" and all(prop[2] is None for prop in properties):
         size = sum(np.dtype(prop[1]).itemsize for prop in properties) * count
         if size > os.fstat(stream.fileno()).st_size - stream.tell():
-            raise ValueError("Truncated PLY data records.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Truncated PLY data records."
+                )
+            )
         stream.seek(size, os.SEEK_CUR)
         return
     for _ in range(count):
@@ -226,7 +296,11 @@ def _skip_ply_records(stream, count, properties, encoding):
             if count_dtype:
                 if tokens is not None:
                     if position >= len(tokens):
-                        raise ValueError("Truncated PLY list record.")
+                        raise ValueError(
+                            QCoreApplication.translate(
+                                "Messages", "Truncated PLY list record."
+                            )
+                        )
                     size = _ascii_scalar(tokens[position], count_dtype)
                     position += 1
                 else:
@@ -239,23 +313,39 @@ def _skip_ply_records(stream, count, properties, encoding):
                         )[0]
                     )
                 if size < 0:
-                    raise ValueError("Negative PLY list length.")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Negative PLY list length."
+                        )
+                    )
             if tokens is None:
                 byte_count = np.dtype(dtype).itemsize * size
                 if (
                     byte_count
                     > os.fstat(stream.fileno()).st_size - stream.tell()
                 ):
-                    raise ValueError("Truncated PLY list data.")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Truncated PLY list data."
+                        )
+                    )
                 stream.seek(byte_count, os.SEEK_CUR)
             else:
                 if position + size > len(tokens):
-                    raise ValueError("Truncated PLY data record.")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Truncated PLY data record."
+                        )
+                    )
                 for token in tokens[position : position + size]:
                     _ascii_scalar(token, dtype)
                 position += size
         if tokens is not None and position != len(tokens):
-            raise ValueError("Unexpected values in PLY data record.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unexpected values in PLY data record."
+                )
+            )
 
 
 def _read_ply(stream):
@@ -279,7 +369,10 @@ def _read_ply(stream):
             )
             if values.shape != (count, len(properties)):
                 raise ValueError(
-                    "PLY vertex count or property count mismatch."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "PLY vertex count or property count mismatch.",
+                    )
                 )
             for column, (_, scalar, _) in enumerate(properties):
                 if scalar[0] in "iu":
@@ -291,7 +384,10 @@ def _read_ply(stream):
                         and np.all((data >= limits.min) & (data <= limits.max))
                     ):
                         raise ValueError(
-                            "Invalid integer in PLY vertex property."
+                            QCoreApplication.translate(
+                                "Messages",
+                                "Invalid integer in PLY vertex property.",
+                            )
                         )
             columns = {
                 prop[0]: values[:, i] for i, prop in enumerate(properties)
@@ -301,10 +397,18 @@ def _read_ply(stream):
                 count * dtype.itemsize
                 > os.fstat(stream.fileno()).st_size - stream.tell()
             ):
-                raise ValueError("Truncated PLY vertex records.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Truncated PLY vertex records."
+                    )
+                )
             values = np.fromfile(stream, dtype=dtype, count=count)
             if len(values) != count:
-                raise ValueError("Truncated PLY vertex records.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Truncated PLY vertex records."
+                    )
+                )
             columns = {prop[0]: values[prop[0]] for prop in properties}
         points = np.zeros((count, 4), dtype=np.float32)
         with np.errstate(over="ignore", invalid="ignore"):
@@ -323,9 +427,17 @@ def _read_ply(stream):
 
     if encoding == "ascii":
         if stream.read().strip():
-            raise ValueError("Unexpected data after declared PLY elements.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unexpected data after declared PLY elements."
+                )
+            )
     elif stream.read(1):
-        raise ValueError("Unexpected data after declared PLY elements.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Unexpected data after declared PLY elements."
+            )
+        )
     return points, has_intensity, rgb
 
 
@@ -334,11 +446,19 @@ def _pcd_header(stream):
     while stream.tell() < 1024 * 1024:
         line = stream.readline(65536)
         if not line:
-            raise ValueError("Incomplete PCD header.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Incomplete PCD header."
+                )
+            )
         try:
             fields = line.decode("ascii").split()
         except UnicodeDecodeError as error:
-            raise ValueError("PCD header is not ASCII encoded.") from error
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "PCD header is not ASCII encoded."
+                )
+            ) from error
         if not fields or fields[0].startswith("#"):
             continue
         key = fields[0].upper()
@@ -348,14 +468,24 @@ def _pcd_header(stream):
                 "binary",
                 "binary_compressed",
             ):
-                raise ValueError("Unsupported or missing PCD data encoding.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Unsupported or missing PCD data encoding."
+                    )
+                )
             encoding = fields[1].lower()
             break
         if key in entries:
-            raise ValueError(f"Duplicate PCD header field: {key}.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Duplicate PCD header field: {0}."
+                ).format(key)
+            )
         entries[key] = fields[1:]
     else:
-        raise ValueError("PCD header exceeds 1 MiB.")
+        raise ValueError(
+            QCoreApplication.translate("Messages", "PCD header exceeds 1 MiB.")
+        )
     try:
         names = entries["FIELDS"]
         sizes = [int(value) for value in entries["SIZE"]]
@@ -367,7 +497,11 @@ def _pcd_header(stream):
         height = int(entries["HEIGHT"][0])
         point_count = int(entries.get("POINTS", [width * height])[0])
     except (KeyError, ValueError, IndexError) as error:
-        raise ValueError("Invalid PCD header fields.") from error
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Invalid PCD header fields."
+            )
+        ) from error
     if (
         not names
         or len(set(names)) != len(names)
@@ -384,7 +518,9 @@ def _pcd_header(stream):
             for type_, size in zip(types, sizes)
         )
     ):
-        raise ValueError("Invalid PCD point layout.")
+        raise ValueError(
+            QCoreApplication.translate("Messages", "Invalid PCD point layout.")
+        )
     return (
         tuple(zip(names, types, sizes, counts)),
         point_count,
@@ -402,7 +538,11 @@ def _lzf_decompress(data, expected_size):
             length = control + 1
             end = position + length
             if end > len(data):
-                raise ValueError("Truncated PCD LZF literal run.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Truncated PCD LZF literal run."
+                    )
+                )
             output.extend(data[position:end])
             position = end
             continue
@@ -410,24 +550,44 @@ def _lzf_decompress(data, expected_size):
         reference = (control & 0x1F) << 8
         if length == 7:
             if position >= len(data):
-                raise ValueError("Truncated PCD LZF back reference.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Truncated PCD LZF back reference."
+                    )
+                )
             length += data[position]
             position += 1
         if position >= len(data):
-            raise ValueError("Truncated PCD LZF back reference.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Truncated PCD LZF back reference."
+                )
+            )
         reference += data[position]
         position += 1
         reference = len(output) - reference - 1
         length += 2
         if reference < 0:
-            raise ValueError("Invalid PCD LZF back reference.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Invalid PCD LZF back reference."
+                )
+            )
         for _ in range(length):
             if reference >= len(output):
-                raise ValueError("Invalid PCD LZF back reference.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Invalid PCD LZF back reference."
+                    )
+                )
             output.append(output[reference])
             reference += 1
     if len(output) != expected_size:
-        raise ValueError("PCD LZF data size does not match its header.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "PCD LZF data size does not match its header."
+            )
+        )
     return bytes(output)
 
 
@@ -442,7 +602,11 @@ def _pcd_columns(fields, point_count, stream, encoding):
         )
         value_count = sum(item[3] for item in fields)
         if values.shape != (point_count, value_count):
-            raise ValueError("PCD point count or field count mismatch.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "PCD point count or field count mismatch."
+                )
+            )
         columns = {}
         offset = 0
         for name, _, _, count in fields:
@@ -452,7 +616,11 @@ def _pcd_columns(fields, point_count, stream, encoding):
             )
             offset += count
         if stream.read().strip():
-            raise ValueError("Unexpected data after declared PCD points.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unexpected data after declared PCD points."
+                )
+            )
         return columns
 
     if encoding == "binary":
@@ -466,24 +634,48 @@ def _pcd_columns(fields, point_count, stream, encoding):
             stream, dtype=np.dtype(dtype_fields), count=point_count
         )
         if len(values) != point_count:
-            raise ValueError("Truncated PCD binary points.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Truncated PCD binary points."
+                )
+            )
         if stream.read(1):
-            raise ValueError("Unexpected data after declared PCD points.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unexpected data after declared PCD points."
+                )
+            )
         return {name: values[name] for name, _, _, _ in fields}
 
     sizes = stream.read(8)
     if len(sizes) != 8:
-        raise ValueError("Truncated PCD compressed data header.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Truncated PCD compressed data header."
+            )
+        )
     compressed_size = int.from_bytes(sizes[:4], "little")
     uncompressed_size = int.from_bytes(sizes[4:], "little")
     remaining = os.fstat(stream.fileno()).st_size - stream.tell()
     if compressed_size > remaining:
-        raise ValueError("PCD compressed data size does not match its file.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "PCD compressed data size does not match its file."
+            )
+        )
     compressed = stream.read(compressed_size)
     if len(compressed) != compressed_size:
-        raise ValueError("Truncated PCD compressed points.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Truncated PCD compressed points."
+            )
+        )
     if stream.read().strip(b"\x00"):
-        raise ValueError("Unexpected data after declared PCD points.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Unexpected data after declared PCD points."
+            )
+        )
     expected_size = sum(
         np.dtype("<" + _PCD_TYPES[(type_, size)]).itemsize
         * count
@@ -492,7 +684,10 @@ def _pcd_columns(fields, point_count, stream, encoding):
     )
     if uncompressed_size != expected_size:
         raise ValueError(
-            "PCD uncompressed data size does not match its header."
+            QCoreApplication.translate(
+                "Messages",
+                "PCD uncompressed data size does not match its header.",
+            )
         )
     raw = _lzf_decompress(compressed, uncompressed_size)
     columns = {}
@@ -504,7 +699,11 @@ def _pcd_columns(fields, point_count, stream, encoding):
             raw, dtype=dtype, count=item_count, offset=offset
         )
         if len(values) != item_count:
-            raise ValueError("Truncated PCD compressed field.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Truncated PCD compressed field."
+                )
+            )
         columns[name] = (
             values if count == 1 else values.reshape(point_count, count)
         )
@@ -538,14 +737,22 @@ def _read_pcd(stream):
             ("z", 1),
         )
     ):
-        raise ValueError("PCD points require scalar x, y, and z fields.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "PCD points require scalar x, y, and z fields."
+            )
+        )
     points = np.zeros((point_count, 4), dtype=np.float32)
     for column, name in enumerate(("x", "y", "z")):
         points[:, column] = columns[name]
     has_intensity = "intensity" in columns
     if has_intensity:
         if definitions["intensity"][1] != 1:
-            raise ValueError("PCD intensity must be a scalar field.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "PCD intensity must be a scalar field."
+                )
+            )
         points[:, 3] = columns["intensity"]
     rgb_name = next(
         (name for name in ("rgb", "rgba") if name in columns), None
@@ -553,7 +760,11 @@ def _read_pcd(stream):
     rgb = None
     if rgb_name is not None:
         if definitions[rgb_name][1] != 1:
-            raise ValueError(f"PCD {rgb_name} must be a scalar field.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "PCD {0} must be a scalar field."
+                ).format(rgb_name)
+            )
         rgb = _pcd_rgb(columns[rgb_name], definitions[rgb_name][0])
     return points, has_intensity, rgb
 
@@ -579,7 +790,10 @@ def load_frame(path, label_path=None, cuboid_path=None):
     path = Path(path)
     if path.suffix.lower() not in (".bin", ".ply", ".pcd"):
         raise ValueError(
-            f"{path}: supported point cloud formats are BIN, PLY, and PCD."
+            QCoreApplication.translate(
+                "Messages",
+                "{0}: supported point cloud formats are BIN, PLY, and PCD.",
+            ).format(path)
         )
     warnings = []
     has_intensity = True
@@ -592,37 +806,54 @@ def load_frame(path, label_path=None, cuboid_path=None):
                 size = before[2]
                 if not size or size % 16:
                     raise ValueError(
-                        "BIN must contain nonempty 16-byte XYZI records."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "BIN must contain nonempty 16-byte XYZI records.",
+                        )
                     )
                 values = np.fromfile(stream, dtype="<f4")
                 if values.size * 4 != size:
-                    raise ValueError("Incomplete BIN point records.")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Incomplete BIN point records."
+                        )
+                    )
                 points = values.reshape(-1, 4)
             elif path.suffix.lower() == ".ply":
                 points, has_intensity, rgb = _read_ply(stream)
                 if not has_intensity:
                     warnings.append(
-                        "PLY has no intensity; intensity coloring is unavailable."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "PLY has no intensity; intensity coloring is unavailable.",
+                        )
                     )
             else:
                 points, has_intensity, rgb = _read_pcd(stream)
                 if not has_intensity:
                     warnings.append(
-                        "PCD has no intensity; intensity coloring is unavailable."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "PCD has no intensity; intensity coloring is unavailable.",
+                        )
                     )
             _check_unchanged(stream, path, before, path_before)
         invalid = ~np.isfinite(points[:, :3]).all(axis=1)
         if invalid.any():
             indices = np.flatnonzero(invalid)
             raise ValueError(
-                f"{indices.size} points have invalid coordinates; "
-                f"first point indices: {indices[:10].tolist()}."
+                QCoreApplication.translate(
+                    "Messages",
+                    "{0} points have invalid coordinates; first point indices: {1}.",
+                ).format(indices.size, indices[:10].tolist())
             )
         invalid_intensity = np.count_nonzero(~np.isfinite(points[:, 3]))
         if invalid_intensity:
             warnings.append(
-                f"{invalid_intensity} points have nonfinite intensity; "
-                "only display colors use a fallback."
+                QCoreApplication.translate(
+                    "Messages",
+                    "{0} points have nonfinite intensity; only display colors use a fallback.",
+                ).format(invalid_intensity)
             )
         candidates = (
             label_candidates(path)
@@ -638,8 +869,12 @@ def load_frame(path, label_path=None, cuboid_path=None):
                 before = _signature(os.fstat(stream.fileno()))
                 if before[2] != len(points) * 4:
                     raise ValueError(
-                        f"{label_path}: expected {len(points)} labels "
-                        f"({len(points) * 4} bytes), found {before[2]} bytes."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "{0}: expected {1} labels ({2} bytes), found {3} bytes.",
+                        ).format(
+                            label_path, len(points), len(points) * 4, before[2]
+                        )
                     )
                 labels = np.fromfile(stream, dtype="<u4")
                 _check_unchanged(stream, label_path, before, path_before)
@@ -648,8 +883,10 @@ def load_frame(path, label_path=None, cuboid_path=None):
         )
         if special:
             warnings.append(
-                f"{special} unlabeled points have nonzero instance IDs; "
-                "original labels are preserved."
+                QCoreApplication.translate(
+                    "Messages",
+                    "{0} unlabeled points have nonzero instance IDs; original labels are preserved.",
+                ).format(special)
             )
         cuboid_path = (
             Path(cuboid_path)
@@ -710,18 +947,31 @@ def load_cuboids(path, source_path):
             or not isinstance(data.get("cuboids"), list)
         ):
             raise ValueError(
-                "Expected version 1 cuboids for this point cloud."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Expected version 1 cuboids for this point cloud.",
+                )
             )
         boxes = []
         for entry in data["cuboids"]:
             if not isinstance(entry, dict):
-                raise ValueError("Each cuboid must be an object.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Each cuboid must be an object."
+                    )
+                )
             try:
                 boxes.append(Cuboid(**entry))
             except TypeError as error:
-                raise ValueError("Invalid cuboid fields.") from error
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Invalid cuboid fields."
+                    )
+                ) from error
         if len({box.id for box in boxes}) != len(boxes):
-            raise ValueError("Duplicate cuboid IDs.")
+            raise ValueError(
+                QCoreApplication.translate("Messages", "Duplicate cuboid IDs.")
+            )
         return tuple(boxes)
     except (ValueError, UnicodeError) as error:
         raise ValueError(f"{path}: {error}") from error
@@ -730,15 +980,30 @@ def load_cuboids(path, source_path):
 def save_cuboids(path, cuboids, source_path):
     path, source_path = Path(path), Path(source_path)
     if not path.name.endswith(".cuboids.json"):
-        raise ValueError("Cuboid output must use the .cuboids.json extension.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages",
+                "Cuboid output must use the .cuboids.json extension.",
+            )
+        )
     if path.resolve() == source_path.resolve() or (
         path.exists() and source_path.exists() and path.samefile(source_path)
     ):
-        raise ValueError("Cuboids cannot overwrite the source point cloud.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Cuboids cannot overwrite the source point cloud."
+            )
+        )
     if any(not isinstance(box, Cuboid) for box in cuboids):
-        raise ValueError("Expected cuboid annotations.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Expected cuboid annotations."
+            )
+        )
     if len({box.id for box in cuboids}) != len(cuboids):
-        raise ValueError("Duplicate cuboid IDs.")
+        raise ValueError(
+            QCoreApplication.translate("Messages", "Duplicate cuboid IDs.")
+        )
     data = {
         "version": 1,
         "type": "pointcloud-cuboids",
@@ -755,20 +1020,29 @@ def save_labels(path, labels, source_path):
     path, source_path = Path(path), Path(source_path)
     if path.suffix.lower() != ".label":
         raise ValueError(
-            f"{path}: label output must use the .label extension."
+            QCoreApplication.translate(
+                "Messages", "{0}: label output must use the .label extension."
+            ).format(path)
         )
     if path.resolve() == source_path.resolve() or (
         path.exists() and source_path.exists() and path.samefile(source_path)
     ):
         raise ValueError(
-            f"{path}: labels cannot overwrite the source point cloud."
+            QCoreApplication.translate(
+                "Messages",
+                "{0}: labels cannot overwrite the source point cloud.",
+            ).format(path)
         )
     labels = validate_labels(labels)
     with source_path.open("rb") as stream:
         if source_path.suffix.lower() == ".bin":
             size = os.fstat(stream.fileno()).st_size
             if not size or size % 16:
-                raise ValueError(f"{source_path}: invalid BIN point records.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "{0}: invalid BIN point records."
+                    ).format(source_path)
+                )
             count = size // 16
         elif source_path.suffix.lower() == ".ply":
             _, elements = _ply_header(stream)
@@ -778,10 +1052,16 @@ def save_labels(path, labels, source_path):
         elif source_path.suffix.lower() == ".pcd":
             _, count, _ = _pcd_header(stream)
         else:
-            raise ValueError(f"{source_path}: unsupported point cloud format.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "{0}: unsupported point cloud format."
+                ).format(source_path)
+            )
     if len(labels) != count:
         raise ValueError(
-            f"{path}: {len(labels)} labels do not match {count} points."
+            QCoreApplication.translate(
+                "Messages", "{0}: {1} labels do not match {2} points."
+            ).format(path, len(labels), count)
         )
     encoded = labels.astype("<u4", copy=False)
     _atomic_write(path, lambda stream: encoded.tofile(stream))
@@ -793,25 +1073,49 @@ def _validate_classes(classes, task="segmentation"):
     for entry in classes:
         if not isinstance(entry, ClassDefinition):
             raise ValueError(
-                "Class entries require id, name and color fields."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Class entries require id, name and color fields.",
+                )
             )
         class_id = _validate_id(entry.id)
         if class_id in seen:
-            raise ValueError(f"Duplicate class ID: {class_id}.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Duplicate class ID: {0}."
+                ).format(class_id)
+            )
         if not isinstance(entry.name, str) or not entry.name.strip():
-            raise ValueError(f"Class {class_id}: name must not be empty.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Class {0}: name must not be empty."
+                ).format(class_id)
+            )
         if not isinstance(entry.color, str) or not re.fullmatch(
             r"#[0-9a-fA-F]{6}", entry.color
         ):
-            raise ValueError(f"Class {class_id}: color must be #RRGGBB.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Class {0}: color must be #RRGGBB."
+                ).format(class_id)
+            )
         seen.add(class_id)
         result.append(
             ClassDefinition(class_id, entry.name.strip(), entry.color.upper())
         )
     if task == "segmentation" and 0 not in seen:
-        raise ValueError("Class configuration must include ID 0 (unlabeled).")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages",
+                "Class configuration must include ID 0 (unlabeled).",
+            )
+        )
     if task == "detection" and 0 in seen:
-        raise ValueError("Detection class IDs must be in 1-65535.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Detection class IDs must be in 1-65535."
+            )
+        )
     return result
 
 
@@ -825,7 +1129,11 @@ def load_classes(path):
             or type(data.get("version")) is not int
             or data["version"] != 1
         ):
-            raise ValueError("Class configuration requires version 1.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Class configuration requires version 1."
+                )
+            )
         tasks = {
             task: data[task]
             for task in ("detection", "segmentation")
@@ -833,14 +1141,21 @@ def load_classes(path):
         }
         if not tasks:
             raise ValueError(
-                "Class configuration requires detection or segmentation classes."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Class configuration requires detection or segmentation classes.",
+                )
             )
         result = {}
         for task, section in tasks.items():
             if not isinstance(section, dict) or not isinstance(
                 section.get("classes"), list
             ):
-                raise ValueError(f"{task} requires a classes array.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "{0} requires a classes array."
+                    ).format(task)
+                )
             classes = []
             for entry in section["classes"]:
                 if not isinstance(entry, dict) or not {
@@ -849,7 +1164,10 @@ def load_classes(path):
                     "color",
                 }.issubset(entry):
                     raise ValueError(
-                        "Class entries require id, name and color fields."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "Class entries require id, name and color fields.",
+                        )
                     )
                 classes.append(
                     ClassDefinition(entry["id"], entry["name"], entry["color"])
@@ -867,7 +1185,10 @@ def class_config_data(definitions):
         or definitions.keys() - {"detection", "segmentation"}
     ):
         raise ValueError(
-            "Class definitions must be grouped by detection or segmentation."
+            QCoreApplication.translate(
+                "Messages",
+                "Class definitions must be grouped by detection or segmentation.",
+            )
         )
     return {
         "version": 1,
@@ -886,7 +1207,10 @@ def save_classes(path, classes):
     path = Path(path)
     if path.suffix.lower() != ".json":
         raise ValueError(
-            f"{path}: class configuration must use the .json extension."
+            QCoreApplication.translate(
+                "Messages",
+                "{0}: class configuration must use the .json extension.",
+            ).format(path)
         )
     data = class_config_data(classes)
     encoded = (json.dumps(data, indent=2, ensure_ascii=False) + "\n").encode(

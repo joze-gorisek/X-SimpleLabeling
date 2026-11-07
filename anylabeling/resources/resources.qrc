@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/images">
         <file>images/toolbar/contrast.svg</file>
+        <file>images/toolbar/globe.svg</file>
         <file>images/toolbar/network.svg</file>
         <file>images/toolbar/component.svg</file>
         <file>images/toolbar/swatch-book.svg</file>
@@ -248,5 +249,6 @@
         <file>translations/zh_CN.qm</file>
         <file>translations/ja_JP.qm</file>
         <file>translations/ko_KR.qm</file>
+        <file>translations/sl_SI.qm</file>
     </qresource>
 </RCC>

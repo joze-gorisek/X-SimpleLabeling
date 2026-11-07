@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from PyQt6.QtCore import QCoreApplication
+
 import base64
 import json
 from dataclasses import dataclass
@@ -128,7 +130,9 @@ class PPOCRPipeline:
             server_url=self.server_url,
             pipeline_model=self.pipeline_model,
             pipeline_models=tuple(),
-            error_message="Service probing has not run yet.",
+            error_message=QCoreApplication.translate(
+                "Messages", "Service probing has not run yet."
+            ),
         )
 
     def update_api_settings(
@@ -278,10 +282,14 @@ class PPOCRPipeline:
                 server_url="",
                 pipeline_model=self.pipeline_model,
                 pipeline_models=tuple(),
-                error_message="Remote server URL is not configured.",
+                error_message=QCoreApplication.translate(
+                    "Messages", "Remote server URL is not configured."
+                ),
             )
             return self.service_probe
-        last_error = "Server probing has not run yet."
+        last_error = QCoreApplication.translate(
+            "Messages", "Server probing has not run yet."
+        )
         for base_url in self._candidate_server_base_urls():
             normalized_base_url = base_url.rstrip("/")
             if normalized_base_url.endswith("/v1/models"):
@@ -297,13 +305,19 @@ class PPOCRPipeline:
                 payload = response.json()
                 models_data = payload.get("data") or {}
                 if not isinstance(models_data, dict):
-                    raise RuntimeError("Invalid /v1/models response data")
+                    raise RuntimeError(
+                        QCoreApplication.translate(
+                            "Messages", "Invalid /v1/models response data"
+                        )
+                    )
 
                 pipeline_models = self._collect_pipeline_models(models_data)
                 if not pipeline_models:
                     raise RuntimeError(
-                        "No PPOCR pipeline model found. "
-                        "Expected capabilities.ppocr_pipeline = true."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "No PPOCR pipeline model found. Expected capabilities.ppocr_pipeline = true.",
+                        )
                     )
 
                 self.pipeline_models = pipeline_models
@@ -386,7 +400,9 @@ class PPOCRPipeline:
         if self.pipeline_model in self.document_models:
             result = self._predict_remote_document(page_paths, cancel_event)
             if cancel_event is not None and cancel_event.is_set():
-                raise RuntimeError("Parsing cancelled")
+                raise RuntimeError(
+                    QCoreApplication.translate("Messages", "Parsing cancelled")
+                )
             return self._normalize_document_result(
                 record, page_paths, result, job_id="", remote=True
             )
@@ -398,7 +414,9 @@ class PPOCRPipeline:
 
         for page_index, page_path in enumerate(page_paths, start=1):
             if cancel_event is not None and cancel_event.is_set():
-                raise RuntimeError("Parsing cancelled")
+                raise RuntimeError(
+                    QCoreApplication.translate("Messages", "Parsing cancelled")
+                )
             if progress_callback is not None:
                 progress_callback(
                     PPOCRParsingProgress(
@@ -603,7 +621,10 @@ class PPOCRPipeline:
     ) -> dict[str, Any]:
         if not isinstance(page_result_data, dict):
             raise RuntimeError(
-                "Invalid PPOCR pipeline response: expected object data"
+                QCoreApplication.translate(
+                    "Messages",
+                    "Invalid PPOCR pipeline response: expected object data",
+                )
             )
         layout_results = page_result_data.get("layoutParsingResults")
         if isinstance(layout_results, list):
@@ -616,12 +637,19 @@ class PPOCRPipeline:
                 None,
             )
             if first_page is None:
-                raise RuntimeError("PPOCR pipeline returned no page results")
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        "Messages", "PPOCR pipeline returned no page results"
+                    )
+                )
             return first_page
         if isinstance(page_result_data.get("prunedResult"), dict):
             return page_result_data
         raise RuntimeError(
-            "Invalid PPOCR pipeline response: missing prunedResult or layoutParsingResults"
+            QCoreApplication.translate(
+                "Messages",
+                "Invalid PPOCR pipeline response: missing prunedResult or layoutParsingResults",
+            )
         )
 
     def _normalize_block_data(
@@ -970,7 +998,9 @@ class PPOCRPipeline:
     ) -> str:
         api_key = str(self.api_key or "").strip()
         if not api_key:
-            raise RuntimeError("API_KEY is empty.")
+            raise RuntimeError(
+                QCoreApplication.translate("Messages", "API_KEY is empty.")
+            )
         data = {
             "model": self.api_model,
             "optionalPayload": json.dumps(
@@ -991,15 +1021,25 @@ class PPOCRPipeline:
             )
         self._raise_for_ppocr_response(
             response,
-            "PPOCR API job submission failed",
+            QCoreApplication.translate(
+                "Messages", "PPOCR API job submission failed"
+            ),
         )
         payload = response.json()
         if not isinstance(payload, dict):
-            raise RuntimeError("PPOCR API job response is invalid.")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "PPOCR API job response is invalid."
+                )
+            )
         self._raise_for_ppocr_payload(payload)
         job_id = self._extract_job_id(payload)
         if not job_id:
-            raise RuntimeError("PPOCR API job response missing job id.")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "PPOCR API job response missing job id."
+                )
+            )
         return job_id
 
     def _poll_ppocr_job(
@@ -1018,7 +1058,9 @@ class PPOCRPipeline:
         interval = min(5.0, max(1.0, timeout_seconds / 60.0))
         while True:
             if cancel_event is not None and cancel_event.is_set():
-                raise RuntimeError("Parsing cancelled")
+                raise RuntimeError(
+                    QCoreApplication.translate("Messages", "Parsing cancelled")
+                )
             response = self._request_with_cancel(
                 "get",
                 poll_url,
@@ -1028,12 +1070,17 @@ class PPOCRPipeline:
             )
             self._raise_for_ppocr_response(
                 response,
-                "PPOCR API job polling failed",
+                QCoreApplication.translate(
+                    "Messages", "PPOCR API job polling failed"
+                ),
             )
             payload = response.json()
             if not isinstance(payload, dict):
                 raise RuntimeError(
-                    "PPOCR API job polling response is invalid."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "PPOCR API job polling response is invalid.",
+                    )
                 )
             self._raise_for_ppocr_payload(payload)
             job_data = self._extract_job_payload(payload)
@@ -1068,13 +1115,17 @@ class PPOCRPipeline:
                 return job_data
             if time.monotonic() >= deadline:
                 raise RuntimeError(
-                    f"PPOCR API job {job_id} did not finish within "
-                    f"{timeout_seconds} seconds."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "PPOCR API job {0} did not finish within {1} seconds.",
+                    ).format(job_id, timeout_seconds)
                 )
             if cancel_event is None:
                 time.sleep(interval)
             elif cancel_event.wait(interval):
-                raise RuntimeError("Parsing cancelled")
+                raise RuntimeError(
+                    QCoreApplication.translate("Messages", "Parsing cancelled")
+                )
 
     def _download_ppocr_job_result(
         self,
@@ -1089,7 +1140,9 @@ class PPOCRPipeline:
         )
         self._raise_for_ppocr_response(
             response,
-            "PPOCR API job result download failed",
+            QCoreApplication.translate(
+                "Messages", "PPOCR API job result download failed"
+            ),
         )
         return response.content.decode("utf-8-sig")
 
@@ -1104,11 +1157,17 @@ class PPOCRPipeline:
         raw_layout_results = result_data.get("layoutParsingResults") or []
         if not isinstance(raw_layout_results, list) or not raw_layout_results:
             raise RuntimeError(
-                "PPOCR API job result contains no page results."
+                QCoreApplication.translate(
+                    "Messages",
+                    "PPOCR API job result contains no page results.",
+                )
             )
         if remote and len(raw_layout_results) != len(page_paths):
             raise RuntimeError(
-                "Parsed page count does not match input document"
+                QCoreApplication.translate(
+                    "Messages",
+                    "Parsed page count does not match input document",
+                )
             )
         pipeline_model = self.pipeline_model if remote else self.api_model
         api_mode = "document" if remote else PPOCR_API_MODE_ASYNC_JOBS
@@ -1254,7 +1313,11 @@ class PPOCRPipeline:
                 if value:
                     return str(value).strip()
         if required:
-            raise RuntimeError("PPOCR API job result missing json url.")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "PPOCR API job result missing json url."
+                )
+            )
         return ""
 
     @staticmethod
@@ -1321,7 +1384,11 @@ class PPOCRPipeline:
     def _parse_ppocr_jsonl_result(text: str) -> dict[str, Any]:
         stripped = str(text or "").strip()
         if not stripped:
-            raise RuntimeError("PPOCR API job result is empty.")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "PPOCR API job result is empty."
+                )
+            )
         records: list[Any]
         try:
             parsed = json.loads(stripped)
@@ -1336,7 +1403,10 @@ class PPOCRPipeline:
                     records.append(json.loads(line))
                 except json.JSONDecodeError as exc:
                     raise RuntimeError(
-                        f"PPOCR API job result jsonl line {line_no} is invalid."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "PPOCR API job result jsonl line {0} is invalid.",
+                        ).format(line_no)
                     ) from exc
 
         layout_results = []
@@ -1363,7 +1433,10 @@ class PPOCRPipeline:
                 data_info.update(result_data_info)
         if not layout_results:
             raise RuntimeError(
-                "PPOCR API job result contains no page results."
+                QCoreApplication.translate(
+                    "Messages",
+                    "PPOCR API job result contains no page results.",
+                )
             )
         return {
             "layoutParsingResults": layout_results,
@@ -1378,7 +1451,9 @@ class PPOCRPipeline:
             )
         server_url = str(self.server_url or "").strip().rstrip("/")
         if not server_url:
-            raise RuntimeError("Server URL is empty.")
+            raise RuntimeError(
+                QCoreApplication.translate("Messages", "Server URL is empty.")
+            )
         if server_url.endswith("/predict"):
             return server_url
         base_urls = self._candidate_server_base_urls()
@@ -1401,12 +1476,16 @@ class PPOCRPipeline:
     ) -> dict[str, Any]:
         api_url = str(self.api_url or "").strip()
         if not api_url:
-            raise RuntimeError("API_URL is empty.")
+            raise RuntimeError(
+                QCoreApplication.translate("Messages", "API_URL is empty.")
+            )
         api_key = str(
             params.get("api_key") or params.get("token") or self.api_key or ""
         ).strip()
         if not api_key:
-            raise RuntimeError("API_KEY is empty.")
+            raise RuntimeError(
+                QCoreApplication.translate("Messages", "API_KEY is empty.")
+            )
 
         auth_schemes = self._resolve_auth_schemes(params, api_key)
         buffer = BytesIO()
@@ -1436,10 +1515,17 @@ class PPOCRPipeline:
                     "PPOCR API unauthorized with current auth scheme, retrying with next scheme."
                 )
         if response is None:
-            raise RuntimeError("PPOCR API request failed: empty response")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "PPOCR API request failed: empty response"
+                )
+            )
         if response.status_code == 401:
             raise RuntimeError(
-                "PPOCR API unauthorized (401). Please set a valid API_KEY."
+                QCoreApplication.translate(
+                    "Messages",
+                    "PPOCR API unauthorized (401). Please set a valid API_KEY.",
+                )
             )
         try:
             response.raise_for_status()
@@ -1456,12 +1542,18 @@ class PPOCRPipeline:
                 message = str(response.text or "").strip()
             detail = f" ({message})" if message else ""
             raise RuntimeError(
-                f"PPOCR API request failed with status={response.status_code}{detail}"
+                QCoreApplication.translate(
+                    "Messages", "PPOCR API request failed with status={0}{1}"
+                ).format(response.status_code, detail)
             ) from exc
 
         data = response.json()
         if not isinstance(data, dict):
-            raise RuntimeError("PPOCR API response is invalid.")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "PPOCR API response is invalid."
+                )
+            )
 
         if "result" in data:
             error_code = data.get("errorCode", -1)
@@ -1479,24 +1571,38 @@ class PPOCRPipeline:
                 )
             result = data.get("result")
             if not isinstance(result, dict):
-                raise RuntimeError("PPOCR API response missing result object")
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        "Messages", "PPOCR API response missing result object"
+                    )
+                )
             return result
 
         if "success" in data:
             if not data.get("success", True):
                 error = data.get("error") or {}
-                message = error.get("message") or "Remote inference failed"
+                message = error.get("message") or QCoreApplication.translate(
+                    "Messages", "Remote inference failed"
+                )
                 raise RuntimeError(str(message))
             payload_data = data.get("data") or {}
             if isinstance(payload_data, dict):
                 return payload_data
-            raise RuntimeError("Remote inference returned invalid data")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "Remote inference returned invalid data"
+                )
+            )
 
         if isinstance(data.get("layoutParsingResults"), list) or isinstance(
             data.get("prunedResult"), dict
         ):
             return data
-        raise RuntimeError("PPOCR API response missing result object")
+        raise RuntimeError(
+            QCoreApplication.translate(
+                "Messages", "PPOCR API response missing result object"
+            )
+        )
 
     def _predict_remote_document(
         self,
@@ -1506,7 +1612,9 @@ class PPOCRPipeline:
         images = []
         for page_path in page_paths:
             if cancel_event is not None and cancel_event.is_set():
-                raise RuntimeError("Parsing cancelled")
+                raise RuntimeError(
+                    QCoreApplication.translate("Messages", "Parsing cancelled")
+                )
             with Image.open(page_path) as image:
                 image = ImageOps.exif_transpose(image).convert("RGB")
                 buffer = BytesIO()
@@ -1542,7 +1650,11 @@ class PPOCRPipeline:
         cancel_event: threading.Event | None = None,
     ) -> dict[str, Any]:
         if not model_id:
-            raise RuntimeError("No PPOCR pipeline model selected")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "No PPOCR pipeline model selected"
+                )
+            )
         buffer = BytesIO()
         image.save(buffer, format="PNG")
         image_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
@@ -1563,7 +1675,9 @@ class PPOCRPipeline:
         response_data = response.json()
         if not response_data.get("success", True):
             error = response_data.get("error") or {}
-            message = error.get("message") or "Remote inference failed"
+            message = error.get("message") or QCoreApplication.translate(
+                "Messages", "Remote inference failed"
+            )
             raise RuntimeError(message)
         return response_data.get("data") or {}
 
@@ -1590,7 +1704,10 @@ class PPOCRPipeline:
     def _raise_for_ppocr_response(response, message_prefix: str) -> None:
         if response.status_code == 401:
             raise RuntimeError(
-                "PPOCR API unauthorized (401). Please set a valid API_KEY."
+                QCoreApplication.translate(
+                    "Messages",
+                    "PPOCR API unauthorized (401). Please set a valid API_KEY.",
+                )
             )
         try:
             response.raise_for_status()
@@ -1608,7 +1725,9 @@ class PPOCRPipeline:
                 message = str(response.text or "").strip()
             detail = f" ({message})" if message else ""
             raise RuntimeError(
-                f"{message_prefix} with status={response.status_code}{detail}"
+                QCoreApplication.translate(
+                    "Messages", "{0} with status={1}{2}"
+                ).format(message_prefix, response.status_code, detail)
             ) from exc
 
     @staticmethod
@@ -1628,7 +1747,9 @@ class PPOCRPipeline:
                 **kwargs,
             )
         if cancel_event.is_set():
-            raise RuntimeError("Parsing cancelled")
+            raise RuntimeError(
+                QCoreApplication.translate("Messages", "Parsing cancelled")
+            )
 
         result_holder: dict[str, Any] = {}
         error_holder: dict[str, Exception] = {}
@@ -1651,7 +1772,9 @@ class PPOCRPipeline:
         request_thread.start()
         while not completed.wait(0.1):
             if cancel_event.is_set():
-                raise RuntimeError("Parsing cancelled")
+                raise RuntimeError(
+                    QCoreApplication.translate("Messages", "Parsing cancelled")
+                )
         if "error" in error_holder:
             raise error_holder["error"]
         return result_holder["response"]
@@ -1805,9 +1928,9 @@ class PPOCRPipelineWorker(QObject):
                             error_message,
                         )
                     except Exception as mark_exc:
-                        error_message = (
-                            f"{error_message} (mark_error failed: {mark_exc})"
-                        )
+                        error_message = QCoreApplication.translate(
+                            "Messages", "{0} (mark_error failed: {1})"
+                        ).format(error_message, mark_exc)
                     self.recordFailed.emit(record.filename, error_message)
                     active_record = None
             self.batchFinished.emit()
@@ -1816,7 +1939,9 @@ class PPOCRPipelineWorker(QObject):
                 self.batchCancelled.emit()
                 return
             if active_record is not None:
-                error_message = f"Unexpected worker error: {exc}"
+                error_message = QCoreApplication.translate(
+                    "Messages", "Unexpected worker error: {0}"
+                ).format(exc)
                 try:
                     self.pipeline.data_manager.mark_error(
                         active_record,

@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import os
 import tempfile
@@ -51,10 +53,18 @@ def _write_pcd(archive, name, source, check_cancelled):
         before = _signature(os.fstat(stream.fileno()))
         if source.suffix.lower() == ".bin":
             if not before[2] or before[2] % 16:
-                raise ValueError(f"{source}: invalid BIN point records.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "{0}: invalid BIN point records."
+                    ).format(source)
+                )
             points = np.fromfile(stream, dtype="<f4").reshape(-1, 4)
             if points.nbytes != before[2]:
-                raise ValueError(f"{source}: incomplete BIN point records.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "{0}: incomplete BIN point records."
+                    ).format(source)
+                )
             intensity, rgb = True, None
         elif source.suffix.lower() == ".ply":
             points, intensity, rgb = _read_ply(stream)
@@ -62,7 +72,9 @@ def _write_pcd(archive, name, source, check_cancelled):
             points, intensity, rgb = _read_pcd(stream)
         else:
             raise ValueError(
-                f"{source}: supported formats are BIN, PLY, and PCD."
+                QCoreApplication.translate(
+                    "Messages", "{0}: supported formats are BIN, PLY, and PCD."
+                ).format(source)
             )
         _check_unchanged(stream, source, before, path_before)
     fields = [(axis, "<f4") for axis in "xyz"]
@@ -92,7 +104,9 @@ def _write_pcd(archive, name, source, check_cancelled):
             block = points[offset : offset + 65536]
             if not np.isfinite(block[:, :3]).all():
                 raise ValueError(
-                    f"{source}: point coordinates must be finite."
+                    QCoreApplication.translate(
+                        "Messages", "{0}: point coordinates must be finite."
+                    ).format(source)
                 )
             records = np.empty(len(block), dtype=fields)
             for column, axis in enumerate("xyz"):
@@ -350,7 +364,10 @@ def _export_entries(path, frames, classes, check_cancelled):
                 )
             ):
                 raise ValueError(
-                    "The export must not overwrite a source file."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "The export must not overwrite a source file.",
+                    )
                 )
         cuboids = frame.cuboids
         if cuboids is None:
@@ -369,7 +386,11 @@ def _export_entries(path, frames, classes, check_cancelled):
         entries.append((frame, name, cuboids))
     classes = list(definitions.values())
     if len({item.name for item in classes}) != len(classes):
-        raise ValueError("Class names must be unique for dataset export.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Class names must be unique for dataset export."
+            )
+        )
     return entries, classes
 
 
@@ -404,12 +425,24 @@ def export_dataset(
     cancelled=None,
 ):
     if format_name not in EXPORT_FORMATS:
-        raise ValueError(f"Unknown export format: {format_name}")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Unknown export format: {0}"
+            ).format(format_name)
+        )
     if not frames:
-        raise ValueError("No point cloud frames to export.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "No point cloud frames to export."
+            )
+        )
     path = Path(path)
     if path.suffix.lower() != ".zip":
-        raise ValueError("Select a ZIP file for the export.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Select a ZIP file for the export."
+            )
+        )
 
     def check_cancelled():
         if cancelled is not None and cancelled():

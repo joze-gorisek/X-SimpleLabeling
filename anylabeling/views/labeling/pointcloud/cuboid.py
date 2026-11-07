@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 from dataclasses import dataclass, replace
 import math
 
@@ -81,7 +83,12 @@ class Cuboid:
         for name in ("id", "class_id"):
             value = getattr(self, name)
             if type(value) is not int or not 1 <= value <= 65535:
-                raise ValueError("Cuboid IDs and classes must be in 1-65535.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Cuboid IDs and classes must be in 1-65535.",
+                    )
+                )
         for name in ("center", "size", "rotation"):
             value = np.asarray(getattr(self, name))
             if (
@@ -90,13 +97,23 @@ class Cuboid:
                 or not np.isfinite(value).all()
             ):
                 raise ValueError(
-                    f"Cuboid {name} requires three finite numbers."
+                    QCoreApplication.translate(
+                        "Messages", "Cuboid {0} requires three finite numbers."
+                    ).format(name)
                 )
             object.__setattr__(self, name, tuple(float(v) for v in value))
         if min(self.size) < MIN_SIZE:
-            raise ValueError(f"Cuboid dimensions must be at least {MIN_SIZE}.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Cuboid dimensions must be at least {0}."
+                ).format(MIN_SIZE)
+            )
         if type(self.occluded) is not bool or type(self.locked) is not bool:
-            raise ValueError("Cuboid flags must be boolean.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Cuboid flags must be boolean."
+                )
+            )
 
     @property
     def matrix(self):
@@ -137,7 +154,12 @@ class Cuboid:
     def fitted(self, points):
         points = np.asarray(points)
         if not len(points):
-            raise ValueError("There are no points inside this cuboid to fit.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages",
+                    "There are no points inside this cuboid to fit.",
+                )
+            )
         local = (points[:, :3] - self.center) @ self.matrix
         low, high = local.min(axis=0), local.max(axis=0)
         return replace(

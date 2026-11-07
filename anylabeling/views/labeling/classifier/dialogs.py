@@ -220,7 +220,7 @@ class NewLabelDialog(QDialog):
             self,
             self.tr("Select Labels File"),
             "",
-            "Text Files (*.txt);;All Files (*)",
+            self.tr("Text Files (*.txt);;All Files (*)"),
         )
 
         if not file_path:
@@ -595,9 +595,9 @@ class StatisticsViewDialog(QDialog):
 
     def create_kpi_chips(self, total_count, labeled_count, unlabeled_count):
         kpi_data = [
-            ("Total", total_count, "#6b7280"),
-            ("Labeled", labeled_count, "#10b981"),
-            ("Unlabeled", unlabeled_count, "#f59e0b"),
+            (self.tr("Total"), total_count, "#6b7280"),
+            (self.tr("Labeled"), labeled_count, "#10b981"),
+            (self.tr("Unlabeled"), unlabeled_count, "#f59e0b"),
         ]
 
         for title, value, color in kpi_data:

@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import multiprocessing
 import os
@@ -84,7 +86,11 @@ def crop_and_save(
             np.fromfile(str(image_path), dtype=np.uint8), cv2.IMREAD_COLOR
         )
         if image is None:
-            raise ValueError(f"Failed to read image: {image_file}")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Failed to read image: {0}"
+                ).format(image_file)
+            )
     except Exception as e:
         logger.error(f"Error reading image: {str(e)}")
         return
@@ -122,7 +128,11 @@ def crop_and_save(
             with open(str(dst_file), "wb") as f:
                 f.write(buf.tobytes())
         else:
-            raise ValueError(f"Failed to save image: {dst_file}")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Failed to save image: {0}"
+                ).format(dst_file)
+            )
     except Exception as e:
         logger.error(f"Error saving image: {str(e)}")
 
@@ -163,7 +173,11 @@ def process_single_image(args):
                 np.fromfile(str(image_path), dtype=np.uint8), cv2.IMREAD_COLOR
             )
             if image is None:
-                raise ValueError(f"Failed to read image: {image_file}")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Failed to read image: {0}"
+                    ).format(image_file)
+                )
         except Exception as e:
             logger.error(f"Error reading image: {str(e)}")
             return False
@@ -215,7 +229,11 @@ def process_single_image(args):
                     with open(str(dst_file), "wb") as f:
                         f.write(buf.tobytes())
                 else:
-                    raise ValueError(f"Failed to save image: {dst_file}")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Failed to save image: {0}"
+                        ).format(dst_file)
+                    )
             except Exception as e:
                 logger.error(f"Error saving image: {str(e)}")
 
@@ -442,8 +460,9 @@ def save_crop(self):
         progress_dialog.close()
         popup = Popup(
             self.tr(
-                f"Cropped images successfully!\nResults have been saved to:\n{save_path}"
-            ),
+                "Cropped images successfully!\nResults have been saved to:\n%s"
+            )
+            % save_path,
             self,
             msec=3000,
             icon=new_icon_path("copy-green", "svg"),

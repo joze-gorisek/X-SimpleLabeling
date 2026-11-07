@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import logging
 import os
@@ -67,16 +69,23 @@ def _match_frames(imported, targets):
             candidates = by_name.get(_frame_key(item.name), [])
             if len(candidates) != 1:
                 raise ValueError(
-                    f"Cannot uniquely match imported frame: {item.name}"
+                    QCoreApplication.translate(
+                        "Messages", "Cannot uniquely match imported frame: {0}"
+                    ).format(item.name)
                 )
             index = candidates[0]
         if type(index) is not int or not 0 <= index < len(targets):
             raise ValueError(
-                f"Imported frame index is outside the current sequence: {index}"
+                QCoreApplication.translate(
+                    "Messages",
+                    "Imported frame index is outside the current sequence: {0}",
+                ).format(index)
             )
         if index in seen:
             raise ValueError(
-                f"Multiple imported frames match {targets[index].path.name}."
+                QCoreApplication.translate(
+                    "Messages", "Multiple imported frames match {0}."
+                ).format(targets[index].path.name)
             )
         seen.add(index)
         matched.append((targets[index], item.cuboids))
@@ -102,7 +111,10 @@ def _merge_classes(imported, classes, targets, reserved_ids, check):
     by_name = {item.name: item for item in classes if item.id != 0}
     if len(by_name) != sum(item.id != 0 for item in classes):
         raise ValueError(
-            "Current class names must be unique before importing."
+            QCoreApplication.translate(
+                "Messages",
+                "Current class names must be unique before importing.",
+            )
         )
     used = set(reserved_ids) | {item.id for item in classes}
     if any(item.name not in by_name for item in imported):
@@ -118,7 +130,10 @@ def _merge_classes(imported, classes, targets, reserved_ids, check):
                 )
             if value is None:
                 raise ValueError(
-                    "No class IDs remain for the imported classes."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "No class IDs remain for the imported classes.",
+                    )
                 )
             entry = ClassDefinition(value, item.name, item.color)
             result.append(entry)
@@ -131,7 +146,10 @@ def _merge_classes(imported, classes, targets, reserved_ids, check):
 def _read_existing(path):
     if path.is_symlink():
         raise ValueError(
-            f"Choose a regular file as the import destination: {path}"
+            QCoreApplication.translate(
+                "Messages",
+                "Choose a regular file as the import destination: {0}",
+            ).format(path)
         )
     return path.read_bytes() if path.exists() else None
 
@@ -167,7 +185,11 @@ def prepare_import(
     def add_change(destination, data):
         resolved = destination.resolve()
         if resolved in protected or resolved in destinations:
-            raise ValueError(f"Conflicting import destination: {destination}")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Conflicting import destination: {0}"
+                ).format(destination)
+            )
         destinations.add(resolved)
         encoded = (
             json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False)
@@ -181,7 +203,10 @@ def prepare_import(
         check()
         if not target.cuboid_path.name.endswith(".cuboids.json"):
             raise ValueError(
-                "Cuboid output must use the .cuboids.json extension."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Cuboid output must use the .cuboids.json extension.",
+                )
             )
         before = target.cuboids
         source = cuboid_source_path(
@@ -209,7 +234,10 @@ def prepare_import(
         config_path = Path(config_path)
         if config_path.suffix.lower() != ".json":
             raise ValueError(
-                "Class configuration must use the .json extension."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Class configuration must use the .json extension.",
+                )
             )
         if segmentation_classes is None:
             existing = (
@@ -246,7 +274,9 @@ def apply_import(plan, *, cancelled=None, progress=None):
             check()
             if _read_existing(change.path) != change.before:
                 raise ValueError(
-                    f"File changed after import preview: {change.path}"
+                    QCoreApplication.translate(
+                        "Messages", "File changed after import preview: {0}"
+                    ).format(change.path)
                 )
             change.path.parent.mkdir(parents=True, exist_ok=True)
             with tempfile.NamedTemporaryFile(
@@ -263,7 +293,11 @@ def apply_import(plan, *, cancelled=None, progress=None):
         for index, (change, temporary) in enumerate(zip(plan.changes, staged)):
             check()
             if _read_existing(change.path) != change.before:
-                raise ValueError(f"File changed during import: {change.path}")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "File changed during import: {0}"
+                    ).format(change.path)
+                )
             if change.before is not None:
                 descriptor, name = tempfile.mkstemp(
                     prefix=f".{change.path.name}.",

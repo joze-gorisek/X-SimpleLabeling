@@ -443,7 +443,7 @@ class PointCloudDialog(QtWidgets.QMainWindow):
         self.camera_panel.hide()
         self.splitter.addWidget(center)
         self.splitter.addWidget(self._build_annotation_panel())
-        self.sidebar_tabs.insertTab(0, self.detection.panel, "Det")
+        self.sidebar_tabs.insertTab(0, self.detection.panel, self.tr("Det"))
         self.sidebar_tabs.setTabToolTip(0, self.tr("Detection"))
         toolbar_layout = self.view_tool_scroll.widget().layout()
         draw_button = self._tool_button(
@@ -959,7 +959,7 @@ class PointCloudDialog(QtWidgets.QMainWindow):
         self._panel_button(2, corner_layout)
         self.sidebar_tabs.setCornerWidget(corner)
         page, layout = self._scroll_page()
-        self.sidebar_tabs.addTab(page, "Seg")
+        self.sidebar_tabs.addTab(page, self.tr("Seg"))
         self.sidebar_tabs.setTabToolTip(0, self.tr("Segmentation"))
         self._build_class_list(layout)
         self._build_instance_list(layout)
@@ -2171,17 +2171,18 @@ class PointCloudDialog(QtWidgets.QMainWindow):
         for definition in self.class_definitions[task]:
             if definition.id == semantic_id:
                 return definition.name
-        return "Unknown"
+        return self.tr("Unknown")
 
     def _next_class_name(self):
         names = {
             item.name for item in self.class_definitions[self._class_task()]
         }
-        name = "Unknown"
+        base_name = self.tr("Unknown")
+        name = base_name
         suffix = 0
         while name in names:
             suffix += 1
-            name = f"Unknown({suffix})"
+            name = f"{base_name}({suffix})"
         return name
 
     def _next_class_color(self):

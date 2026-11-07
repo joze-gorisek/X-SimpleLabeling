@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import os
 import tempfile
@@ -84,7 +86,11 @@ class SidecarData:
     @classmethod
     def from_json(cls, data):
         if not isinstance(data, dict):
-            raise ValueError("Sidecar payload must be a JSON object")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Sidecar payload must be a JSON object"
+                )
+            )
         sd = cls(
             video=str(data.get("video") or ""),
             fps=float(data.get("fps") or 0.0),
@@ -174,22 +180,39 @@ def _validate_sidecar_payload(data):
     ):
         value = data.get(name)
         if value is not None and not isinstance(value, expected_type):
-            raise ValueError(f"'{name}' must be a JSON {type_name}")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "'{0}' must be a JSON {1}"
+                ).format(name, type_name)
+            )
 
     labels = data.get("labels") or []
     if any(not isinstance(label, str) for label in labels):
-        raise ValueError("'labels' entries must be strings")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "'labels' entries must be strings"
+            )
+        )
 
     label_colors = data.get("label_colors") or {}
     if any(
         not isinstance(label, str) or not isinstance(color, str)
         for label, color in label_colors.items()
     ):
-        raise ValueError("'label_colors' entries must map strings to strings")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages",
+                "'label_colors' entries must map strings to strings",
+            )
+        )
 
     for index, entry in enumerate(data.get("segments") or []):
         if not isinstance(entry, dict):
-            raise ValueError(f"'segments[{index}]' must be a JSON object")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "'segments[{0}]' must be a JSON object"
+                ).format(index)
+            )
         for name in (
             "start_ms",
             "end_ms",
@@ -203,7 +226,9 @@ def _validate_sidecar_payload(data):
                 int(value)
             except (TypeError, ValueError) as exc:
                 raise ValueError(
-                    f"'segments[{index}].{name}' must be an integer"
+                    QCoreApplication.translate(
+                        "Messages", "'segments[{0}].{1}' must be an integer"
+                    ).format(index, name)
                 ) from exc
 
 
@@ -217,15 +242,24 @@ def load_sidecar(video_path) -> Optional[SidecarData]:
     except json.JSONDecodeError as exc:
         raise InvalidSidecarError(
             sp,
-            f"Invalid JSON at line {exc.lineno}, column {exc.colno}: "
-            f"{exc.msg}",
+            QCoreApplication.translate(
+                "Messages", "Invalid JSON at line {0}, column {1}: {2}"
+            ).format(exc.lineno, exc.colno, exc.msg),
         ) from exc
     except (OSError, UnicodeError) as exc:
         raise InvalidSidecarError(
-            sp, f"Failed to read sidecar: {exc}"
+            sp,
+            QCoreApplication.translate(
+                "Messages", "Failed to read sidecar: {0}"
+            ).format(exc),
         ) from exc
     if not isinstance(data, dict):
-        raise InvalidSidecarError(sp, "Sidecar payload must be a JSON object")
+        raise InvalidSidecarError(
+            sp,
+            QCoreApplication.translate(
+                "Messages", "Sidecar payload must be a JSON object"
+            ),
+        )
     if data.get("type") and data.get("type") != SIDECAR_TYPE:
         # An unrelated sidecar (e.g. image annotation) — ignore.
         return None
@@ -233,15 +267,19 @@ def load_sidecar(video_path) -> Optional[SidecarData]:
     if version and version != SCHEMA_VERSION:
         raise IncompatibleSidecarError(
             sp,
-            f"Unsupported sidecar version {version!r}; "
-            f"expected {SCHEMA_VERSION!r}",
+            QCoreApplication.translate(
+                "Messages", "Unsupported sidecar version {0!r}; expected {1!r}"
+            ).format(version, SCHEMA_VERSION),
         )
     try:
         _validate_sidecar_payload(data)
         sd = SidecarData.from_json(data)
     except (TypeError, ValueError) as exc:
         raise InvalidSidecarError(
-            sp, f"Invalid sidecar schema: {exc}"
+            sp,
+            QCoreApplication.translate(
+                "Messages", "Invalid sidecar schema: {0}"
+            ).format(exc),
         ) from exc
     return sd
 
@@ -249,7 +287,11 @@ def load_sidecar(video_path) -> Optional[SidecarData]:
 def save_sidecar(video_path, sidecar: SidecarData) -> str:
     sp = sidecar_path_for(video_path)
     if not sp:
-        raise ValueError("Cannot resolve sidecar path: empty video_path")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Cannot resolve sidecar path: empty video_path"
+            )
+        )
     sidecar.video = os.path.basename(video_path)
     payload = sidecar.to_json()
     directory = os.path.dirname(sp) or "."

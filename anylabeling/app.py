@@ -410,6 +410,17 @@ def main():
     app.setApplicationName(__appname__)
     app.setApplicationVersion(__version__)
     app.setWindowIcon(new_icon("icon"))
+    # Qt's own strings (standard buttons, file dialogs). Installed first so the
+    # application catalog takes precedence. Missing catalogs are harmless.
+    qt_translator = QtCore.QTranslator()
+    if qt_translator.load(
+        "qt_" + language,
+        QtCore.QLibraryInfo.path(
+            QtCore.QLibraryInfo.LibraryPath.TranslationsPath
+        ),
+    ):
+        app.installTranslator(qt_translator)
+    app.setProperty("xanylabeling_language", language)
     if loaded_language:
         app.installTranslator(translator)
     else:
@@ -446,6 +457,9 @@ def main():
 
     win.showMaximized()
     win.raise_()
+    QtCore.QTimer.singleShot(
+        0, win.labeling_widget.view.auto_labeling_widget.load_default_model
+    )
     sys.exit(app.exec())
 
 

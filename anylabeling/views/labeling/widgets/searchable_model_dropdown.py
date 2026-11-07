@@ -35,7 +35,7 @@ class SearchBar(QLineEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         t = get_theme()
-        self.setPlaceholderText("Search models")
+        self.setPlaceholderText(self.tr("Search models"))
         self.setFixedHeight(DEFAULT_FIXED_HEIGHT)
         self.setStyleSheet(f"""
             QLineEdit {{
@@ -101,7 +101,7 @@ class ProviderSection(QFrame):
         header.addWidget(icon)
 
         _t = get_theme()
-        label = QLabel(provider_name)
+        label = QLabel(self.tr(provider_name))
         label.setStyleSheet(f"""
             font-weight: 700;
             font-size: 13px;
@@ -151,7 +151,7 @@ class ModelItem(QFrame):
         layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         _t = get_theme()
-        self.name_label = QLabel(self.display_name)
+        self.name_label = QLabel(self.tr(self.display_name))
         self.name_label.setStyleSheet(
             f"font-size: {FONT_SIZE_SMALL}; color: {_t['text']}; background: transparent;"
         )
@@ -551,7 +551,7 @@ class SearchableModelDropdownPopup(QWidget):
         save_json(model_config, models_config_path)
 
     def filter_models(self, search_text, match_threshold=0.7):
-        empty_text = "No models found."
+        empty_text = self.tr("No models found.")
 
         for i in reversed(range(self.container_layout.count())):
             widget = self.container_layout.itemAt(i).widget()

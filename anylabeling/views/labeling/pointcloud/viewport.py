@@ -1,5 +1,7 @@
 """Native OpenGL point-cloud display and transactional selection gestures."""
 
+from PyQt6.QtCore import QCoreApplication
+
 import math
 
 import numpy as np
@@ -118,7 +120,11 @@ class _PointCloudGLWidget(QOpenGLWidget):
         try:
             self.functions = QOpenGLFunctions_2_0()
             if not self.functions.initializeOpenGLFunctions():
-                raise RuntimeError("OpenGL 2.0 functions are unavailable.")
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        "Messages", "OpenGL 2.0 functions are unavailable."
+                    )
+                )
             self.owner._max_point_size = max(
                 1, int(self.functions.glGetFloatv(0x846D)[1])
             )
@@ -149,7 +155,10 @@ class _PointCloudGLWidget(QOpenGLWidget):
             ):
                 if not buffer.create():
                     raise RuntimeError(
-                        "Could not allocate the point-cloud buffer."
+                        QCoreApplication.translate(
+                            "Messages",
+                            "Could not allocate the point-cloud buffer.",
+                        )
                     )
                 buffer.setUsagePattern(QOpenGLBuffer.UsagePattern.DynamicDraw)
             self.context().aboutToBeDestroyed.connect(self.cleanup)
@@ -400,7 +409,11 @@ class _PointCloudGLWidget(QOpenGLWidget):
         buffer.bind()
         buffer.allocate(memoryview(data), data.nbytes)
         if self.functions.glGetError() != 0:
-            raise RuntimeError("Could not upload the point-cloud buffer.")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "Could not upload the point-cloud buffer."
+                )
+            )
 
     def _upload_colors(self):
         colors = self.owner._colors
@@ -421,14 +434,21 @@ class _PointCloudGLWidget(QOpenGLWidget):
                     start * 16, memoryview(data), data.nbytes
                 )
             if self.functions.glGetError() != 0:
-                raise RuntimeError("Could not upload the point-cloud buffer.")
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        "Messages", "Could not upload the point-cloud buffer."
+                    )
+                )
         self.color_dirty = False
         self.color_indices = None
 
     def capture_surface(self):
         if not self.isValid() or self.program is None:
             raise RuntimeError(
-                "The OpenGL viewport is not ready for selection."
+                QCoreApplication.translate(
+                    "Messages",
+                    "The OpenGL viewport is not ready for selection.",
+                )
             )
         self.makeCurrent()
         size = QtCore.QSize(*self.owner._physical_size())
@@ -448,7 +468,10 @@ class _PointCloudGLWidget(QOpenGLWidget):
         try:
             if not framebuffer.isValid() or not framebuffer.bind():
                 raise RuntimeError(
-                    "Could not allocate the selection framebuffer."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Could not allocate the selection framebuffer.",
+                    )
                 )
             self._draw_points(picking=True)
             image = framebuffer.toImage()
@@ -472,7 +495,10 @@ class _PointCloudGLWidget(QOpenGLWidget):
             )
             if owners.max(initial=0) > len(self.owner._points):
                 raise RuntimeError(
-                    "Invalid point IDs from the selection framebuffer."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Invalid point IDs from the selection framebuffer.",
+                    )
                 )
             return owners
         finally:
@@ -595,10 +621,17 @@ class PointCloudViewport(QtWidgets.QWidget):
         points = np.asarray(points, dtype=np.float32)
         if points.ndim != 2 or points.shape[1] not in (3, 4):
             raise ValueError(
-                "Point coordinates must have shape (N, 3) or (N, 4)."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Point coordinates must have shape (N, 3) or (N, 4).",
+                )
             )
         if not np.isfinite(points[:, :3]).all():
-            raise ValueError("Point coordinates must be finite.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Point coordinates must be finite."
+                )
+            )
         self.cancel_selection()
         self._points = points
         self._colors = np.full((len(points), 4), 0.7, dtype=np.float32)
@@ -619,7 +652,11 @@ class PointCloudViewport(QtWidgets.QWidget):
         if indices.ndim != 1 or np.any(
             (indices < 0) | (indices >= len(self._points))
         ):
-            raise ValueError("Point indices must be within the point cloud.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Point indices must be within the point cloud."
+                )
+            )
         return indices
 
     def set_colors(self, colors, indices=None):
@@ -631,12 +668,20 @@ class PointCloudViewport(QtWidgets.QWidget):
             (count, 3),
             (count, 4),
         ):
-            raise ValueError("Colors must have shape (N, 3) or (N, 4).")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Colors must have shape (N, 3) or (N, 4)."
+                )
+            )
         normalized = colors.astype(np.float32)
         if np.issubdtype(colors.dtype, np.integer):
             normalized /= 255.0
         if not np.isfinite(normalized).all():
-            raise ValueError("Colors must be finite.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Colors must be finite."
+                )
+            )
         target = slice(None) if indices is None else indices
         self._colors[target, :3] = np.clip(normalized[:, :3], 0, 1)
         self._colors[target, 3] = (
@@ -651,7 +696,11 @@ class PointCloudViewport(QtWidgets.QWidget):
         mask = np.asarray(mask, dtype=bool)
         count = len(self._points) if indices is None else len(indices)
         if mask.shape != (count,):
-            raise ValueError("Visibility must have one entry per point.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Visibility must have one entry per point."
+                )
+            )
         if cancel_selection:
             self.cancel_selection()
         target = slice(None) if indices is None else indices
@@ -663,7 +712,11 @@ class PointCloudViewport(QtWidgets.QWidget):
 
     def set_tool(self, tool):
         if tool not in ("browse", "brush", "polygon"):
-            raise ValueError("Unknown point-cloud tool")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unknown point-cloud tool"
+                )
+            )
         self.cancel_selection()
         self._tool = tool
         if self._gl:
@@ -676,7 +729,11 @@ class PointCloudViewport(QtWidgets.QWidget):
 
     def set_depth_mode(self, mode):
         if mode not in ("surface", "through"):
-            raise ValueError("Unknown depth selection mode")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unknown depth selection mode"
+                )
+            )
         self.cancel_selection()
         self._depth_mode = mode
 
@@ -706,7 +763,11 @@ class PointCloudViewport(QtWidgets.QWidget):
             "side": (90.0, 0.0),
         }
         if view not in directions:
-            raise ValueError("Unknown point-cloud view")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unknown point-cloud view"
+                )
+            )
         self.cancel_selection()
         self._yaw, self._pitch = directions[view]
         self._update()

@@ -57,7 +57,11 @@ def _check_model_worker(model_path):
 
             torch.load(model_path, map_location="cpu")
         else:
-            raise ValueError(f"Unsupported model format: {file_extension}")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unsupported model format: {0}"
+                ).format(file_extension)
+            )
     except Exception as e:
         import sys
 
@@ -168,7 +172,11 @@ class Model(QObject):
 
     def _check_cancelled(self):
         if self._cancel_event and self._cancel_event.is_set():
-            raise DownloadCancelledError("Download cancelled by user")
+            raise DownloadCancelledError(
+                QCoreApplication.translate(
+                    "Messages", "Download cancelled by user"
+                )
+            )
 
     @staticmethod
     def _ensure_path_within_directory(path, directory):
@@ -176,7 +184,10 @@ class Model(QObject):
         path = pathlib.Path(path).resolve()
         if path == directory or directory not in path.parents:
             raise ValueError(
-                f"Model path must be within the model directory: {path}"
+                QCoreApplication.translate(
+                    "Messages",
+                    "Model path must be within the model directory: {0}",
+                ).format(path)
             )
         return str(path)
 
@@ -253,9 +264,14 @@ class Model(QObject):
                     os.remove(part_path)
                 delay = self.RETRY_DELAY * (attempt + 1)
                 if attempt < self.MAX_RETRIES - 1:
-                    error_msg = (
-                        f"Connection failed, retrying in {delay}s... "
-                        f"(Attempt {attempt + 1}/{self.MAX_RETRIES} failed)"
+                    error_msg = QCoreApplication.translate(
+                        "Model",
+                        "Connection failed, retrying in {delay}s... "
+                        "(Attempt {attempt}/{retries} failed)",
+                    ).format(
+                        delay=delay,
+                        attempt=attempt + 1,
+                        retries=self.MAX_RETRIES,
                     )
                     logger.warning(error_msg)
                     self.on_message(error_msg)
@@ -429,10 +445,16 @@ class Model(QObject):
                 f"Could not download {download_url}: {e}, "
                 "you can try to download it manually."
             )
-            self.on_message("Download failed! Please try again later.")
+            self.on_message(
+                QCoreApplication.translate(
+                    "Messages", "Download failed! Please try again later."
+                )
+            )
             time.sleep(1)
             raise Exception(
-                f"Could not download model: {ellipsis_download_url}"
+                QCoreApplication.translate(
+                    "Messages", "Could not download model: {0}"
+                ).format(ellipsis_download_url)
             ) from e
 
         return model_abs_path
@@ -443,7 +465,11 @@ class Model(QObject):
         """
         for name in config_names:
             if name not in config:
-                raise Exception(f"Missing config: {name}")
+                raise Exception(
+                    QCoreApplication.translate(
+                        "Messages", "Missing config: {0}"
+                    ).format(name)
+                )
 
     @abstractmethod
     def predict_shapes(self, image, filename=None) -> AutoLabelingResult:

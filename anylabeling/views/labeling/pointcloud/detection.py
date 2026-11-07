@@ -401,7 +401,10 @@ class DetectionWorkspace(QtWidgets.QSplitter):
         }
         if self.document is not None:
             for member in self.document.cuboids:
-                classes.setdefault(member.class_id, f"Class {member.class_id}")
+                classes.setdefault(
+                    member.class_id,
+                    self.tr("Class {0}").format(member.class_id),
+                )
         for class_id_value, name in classes.items():
             self.class_combo.addItem(name, class_id_value)
         index = self.class_combo.findData(class_id)

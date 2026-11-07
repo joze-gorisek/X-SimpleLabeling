@@ -62,9 +62,10 @@ class MainWindow(QMainWindow):
 
         status_bar = QStatusBar()
         status_bar.showMessage(
-            f"{__appname__} v{__version__} - {__appdescription__}"
+            f"{__appname__} v{__version__} - {self.tr(__appdescription__)}"
         )
         self.setStatusBar(status_bar)
+        self.labeling_widget.view.install_language_button()
         self._restore_window_geometry()
 
     def closeEvent(self, event):

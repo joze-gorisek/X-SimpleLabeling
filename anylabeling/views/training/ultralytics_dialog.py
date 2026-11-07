@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication, QT_TRANSLATE_NOOP
+
 import csv
 import datetime
 import glob
@@ -128,12 +130,165 @@ class _TrainingImagesScrollArea(QScrollArea):
         event.accept()
 
 
+# Messages from the training subprocess. It runs in the user's training Python
+# without Qt, so its text is translated here when it reaches the UI.
+WORKER_MESSAGE_PATTERNS = (
+    (
+        re.compile(r"Loading model from (.+)"),
+        QT_TRANSLATE_NOOP("UltralyticsDialog", "Loading model from {0}"),
+    ),
+    (
+        re.compile(r"CUDA device (\d+) is no longer available"),
+        QT_TRANSLATE_NOOP(
+            "UltralyticsDialog", "CUDA device {0} is no longer available"
+        ),
+    ),
+    (
+        re.compile(r"CUDA device (\d+) failed tensor validation"),
+        QT_TRANSLATE_NOOP(
+            "UltralyticsDialog", "CUDA device {0} failed tensor validation"
+        ),
+    ),
+    (
+        re.compile(
+            r"Missing required packages: (.+)\. Install them with: (.+)"
+        ),
+        QT_TRANSLATE_NOOP(
+            "UltralyticsDialog",
+            "Missing required packages: {0}. Install them with: {1}",
+        ),
+    ),
+    (
+        re.compile(
+            r"Failed to install required export packages \(exit code (.+)\)"
+        ),
+        QT_TRANSLATE_NOOP(
+            "UltralyticsDialog",
+            "Failed to install required export packages (exit code {0})",
+        ),
+    ),
+    (
+        re.compile(r"Worker payload field '(.+)' must be an object"),
+        QT_TRANSLATE_NOOP(
+            "UltralyticsDialog", "Worker payload field '{0}' must be an object"
+        ),
+    ),
+    (
+        re.compile(r"Unsupported (.+) payload field in '(.+)'"),
+        QT_TRANSLATE_NOOP(
+            "UltralyticsDialog", "Unsupported {0} payload field in '{1}'"
+        ),
+    ),
+    (
+        re.compile(r"Missing required paths for (.+)"),
+        QT_TRANSLATE_NOOP(
+            "UltralyticsDialog", "Missing required paths for {0}"
+        ),
+    ),
+)
+WORKER_MESSAGES = (
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "PyTorch is not available"),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "CPU tensor validation failed"),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "Ultralytics is not available"),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog",
+        "The bundled Ultralytics worker script was not found",
+    ),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "Unknown error"),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "Unknown error occurred"),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "Installing required packages"),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "Packages remain unavailable after installation"
+    ),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "Unsupported export format"),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "Model weights not found at"),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "Unsupported training arguments"),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "CPU tensor returned an unexpected result"
+    ),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "CUDA tensor returned an unexpected result"
+    ),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "MPS tensor returned an unexpected result"
+    ),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "CPU device failed tensor validation"
+    ),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "MPS device is no longer available"
+    ),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "MPS device failed tensor validation"
+    ),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "CUDA is no longer available"),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "Package installer output is unavailable"
+    ),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "Package installation timed out after 30 minutes"
+    ),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog",
+        "pip is not available in Training Python. Install pip manually before "
+        "exporting.",
+    ),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "Export completed but its output was not found"
+    ),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "Unsupported worker payload version"
+    ),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "Unsupported worker action"),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "Unsupported worker payload fields"
+    ),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "Worker paths must be strings"),
+    QT_TRANSLATE_NOOP(
+        "UltralyticsDialog", "auto_install_packages must be a boolean"
+    ),
+    # Device names shown in the device list; the item data keeps the value
+    # passed to Ultralytics.
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "cuda"),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "mps"),
+    QT_TRANSLATE_NOOP("UltralyticsDialog", "cpu"),
+)
+
+
+def translate_worker_message(text):
+    translate = QCoreApplication.translate
+    for pattern, template in WORKER_MESSAGE_PATTERNS:
+        match = pattern.fullmatch(text)
+        if match:
+            return translate("UltralyticsDialog", template).format(
+                *match.groups()
+            )
+    prefix, separator, detail = text.partition(": ")
+    return translate("UltralyticsDialog", prefix) + separator + detail
+
+
+def add_device_item(widget, device):
+    widget.addItem(
+        QCoreApplication.translate("UltralyticsDialog", device), device
+    )
+
+
+def current_device(widget):
+    return widget.currentData() or widget.currentText()
+
+
+def select_device(widget, device):
+    index = widget.findData(device)
+    if index >= 0:
+        widget.setCurrentIndex(index)
+
+
 class UltralyticsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
-        self.setWindowTitle(DEFAULT_WINDOW_TITLE)
+        self.setWindowTitle(self.tr(DEFAULT_WINDOW_TITLE))
         self.setWindowFlags(
             Qt.WindowType.Window
             | Qt.WindowType.WindowMinimizeButtonHint
@@ -435,7 +590,7 @@ class UltralyticsDialog(QDialog):
         task_type_layout = QHBoxLayout()
         task_type_layout.addWidget(QLabel(self.tr("Task Type:")))
         for task_type in TASK_TYPES:
-            button = CustomQPushButton(task_type)
+            button = CustomQPushButton(self.tr(task_type))
             button.clicked.connect(self.create_task_handler(task_type))
             task_type_layout.addWidget(button)
             self.task_type_buttons[task_type] = button
@@ -636,7 +791,7 @@ class UltralyticsDialog(QDialog):
             self,
             self.tr("Select Model File"),
             "",
-            "Model Files (*.pt);;All Files (*)",
+            self.tr("Model Files (*.pt);;All Files (*)"),
         )
         if file_path:
             self.config_widgets["model"].setText(file_path)
@@ -653,7 +808,7 @@ class UltralyticsDialog(QDialog):
                 self,
                 self.tr("Select Data File"),
                 "",
-                "Text Files (*.yaml);;All Files (*)",
+                self.tr("Text Files (*.yaml);;All Files (*)"),
             )
             if file_path:
                 is_valid, result = validate_data_file(file_path)
@@ -673,7 +828,7 @@ class UltralyticsDialog(QDialog):
             self,
             self.tr("Select Pose Config File"),
             "",
-            "YAML Files (*.yaml *.yml);;All Files (*)",
+            self.tr("YAML Files (*.yaml *.yml);;All Files (*)"),
         )
         if file_path:
             self.config_widgets["pose_config"].setText(file_path)
@@ -724,7 +879,9 @@ class UltralyticsDialog(QDialog):
 
         for gpu in gpus:
             index = gpu["index"]
-            checkbox = CustomCheckBox(f"GPU {index}: {gpu['name']}")
+            checkbox = CustomCheckBox(
+                self.tr("GPU {0}: {1}").format(index, gpu["name"])
+            )
             checkbox.setProperty("gpu_index", index)
             checkbox.setMaximumHeight(20)
             is_available = bool(gpu.get("available"))
@@ -755,7 +912,7 @@ class UltralyticsDialog(QDialog):
             preferred = getattr(self, "_pending_device_selection", None)
             preferred_is_valid = False
             if result.get("cuda_available"):
-                device_widget.addItem("cuda")
+                add_device_item(device_widget, "cuda")
                 selected_indices = None
                 if preferred and preferred[0] == "cuda":
                     available_indices = {
@@ -772,19 +929,19 @@ class UltralyticsDialog(QDialog):
                     selected_indices if preferred_is_valid else None,
                 )
             if result.get("mps_available"):
-                device_widget.addItem("mps")
+                add_device_item(device_widget, "mps")
                 preferred_is_valid = preferred_is_valid or bool(
                     preferred and preferred[0] == "mps"
                 )
             if result.get("cpu_available"):
-                device_widget.addItem("cpu")
+                add_device_item(device_widget, "cpu")
                 preferred_is_valid = preferred_is_valid or bool(
                     preferred and preferred[0] == "cpu"
                 )
             if preferred and preferred_is_valid:
-                device_widget.setCurrentText(preferred[0])
+                select_device(device_widget, preferred[0])
             elif preferred and result.get("cpu_available"):
-                device_widget.setCurrentText("cpu")
+                select_device(device_widget, "cpu")
             self._pending_device_selection = None
             device_widget.setEnabled(device_widget.count() > 0)
         else:
@@ -795,7 +952,7 @@ class UltralyticsDialog(QDialog):
             )
             device_widget.setEnabled(False)
         device_widget.blockSignals(False)
-        self.on_device_changed(device_widget.currentText())
+        self.on_device_changed(current_device(device_widget))
         if hasattr(self, "start_training_button"):
             self.start_training_button.setEnabled(self.environment_ready)
 
@@ -803,7 +960,7 @@ class UltralyticsDialog(QDialog):
         if self.environment_ready and "device" in getattr(
             self, "config_widgets", {}
         ):
-            device = self.config_widgets["device"].currentText()
+            device = current_device(self.config_widgets["device"])
             selected_indices = []
             if device == "cuda" and self.device_checkboxes.layout():
                 for index in range(self.device_checkboxes.layout().count()):
@@ -849,11 +1006,11 @@ class UltralyticsDialog(QDialog):
             get_default_project_dir(), selected_task_type
         )
         self.config_widgets["project"].setText(text_project)
-        layout.addRow("Project:", self.config_widgets["project"])
+        layout.addRow(self.tr("Project:"), self.config_widgets["project"])
 
         self.config_widgets["name"] = CustomLineEdit()
-        self.config_widgets["name"].setText("exp")
-        layout.addRow("Name:", self.config_widgets["name"])
+        self.config_widgets["name"].setText(self.tr("exp"))
+        layout.addRow(self.tr("Name:"), self.config_widgets["name"])
 
         env_layout = QHBoxLayout()
         self.config_widgets["env"] = CustomLineEdit()
@@ -863,36 +1020,36 @@ class UltralyticsDialog(QDialog):
                 self.config_widgets["env"].text()
             )
         )
-        env_browse_btn = SecondaryButton("Browse")
+        env_browse_btn = SecondaryButton(self.tr("Browse"))
         env_browse_btn.clicked.connect(self.browse_training_environment)
         env_layout.addWidget(self.config_widgets["env"])
         env_layout.addWidget(env_browse_btn)
-        layout.addRow("Env:", env_layout)
+        layout.addRow(self.tr("Env:"), env_layout)
 
         model_layout = QHBoxLayout()
         self.config_widgets["model"] = CustomLineEdit()
-        model_browse_btn = SecondaryButton("Browse")
+        model_browse_btn = SecondaryButton(self.tr("Browse"))
         model_browse_btn.clicked.connect(self.browse_model_file)
         model_layout.addWidget(self.config_widgets["model"])
         model_layout.addWidget(model_browse_btn)
-        layout.addRow("Model:", model_layout)
+        layout.addRow(self.tr("Model:"), model_layout)
 
         data_layout = QHBoxLayout()
         self.config_widgets["data"] = CustomLineEdit()
-        data_browse_btn = SecondaryButton("Browse")
+        data_browse_btn = SecondaryButton(self.tr("Browse"))
         data_browse_btn.clicked.connect(self.browse_data_file)
         data_layout.addWidget(self.config_widgets["data"])
         data_layout.addWidget(data_browse_btn)
-        layout.addRow("Data:", data_layout)
+        layout.addRow(self.tr("Data:"), data_layout)
 
         pose_config_layout = QHBoxLayout()
         self.config_widgets["pose_config"] = CustomLineEdit()
-        pose_config_browse_btn = SecondaryButton("Browse")
+        pose_config_browse_btn = SecondaryButton(self.tr("Browse"))
         pose_config_browse_btn.clicked.connect(self.browse_pose_config_file)
         pose_config_layout.addWidget(self.config_widgets["pose_config"])
         pose_config_layout.addWidget(pose_config_browse_btn)
 
-        self.pose_config_label = QLabel("Pose Config:")
+        self.pose_config_label = QLabel(self.tr("Pose Config:"))
         layout.addRow(self.pose_config_label, pose_config_layout)
         self.pose_config_layout = pose_config_layout
 
@@ -904,12 +1061,14 @@ class UltralyticsDialog(QDialog):
         self.config_widgets["device"] = CustomComboBox()
         self.device_checkboxes = QWidget()
         self.device_checkboxes.setVisible(False)
-        self.config_widgets["device"].currentTextChanged.connect(
-            self.on_device_changed
+        self.config_widgets["device"].currentIndexChanged.connect(
+            lambda _index: self.on_device_changed(
+                current_device(self.config_widgets["device"])
+            )
         )
         device_layout.addWidget(self.config_widgets["device"])
         device_layout.addWidget(self.device_checkboxes)
-        layout.addRow("Device:", device_layout)
+        layout.addRow(self.tr("Device:"), device_layout)
         self.apply_environment_result()
 
         dataset_layout = QHBoxLayout()
@@ -918,13 +1077,13 @@ class UltralyticsDialog(QDialog):
         )
         self.config_widgets["dataset_ratio"].setRange(5, 95)
         self.config_widgets["dataset_ratio"].setValue(80)
-        self.dataset_ratio_label = QLabel("0.8")
+        self.dataset_ratio_label = QLabel(self.tr("0.8"))
         self.config_widgets["dataset_ratio"].valueChanged.connect(
             lambda v: self.dataset_ratio_label.setText(str(v / 100.0))
         )
         dataset_layout.addWidget(self.config_widgets["dataset_ratio"])
         dataset_layout.addWidget(self.dataset_ratio_label)
-        layout.addRow("Dataset Ratio:", dataset_layout)
+        layout.addRow(self.tr("Dataset Ratio:"), dataset_layout)
 
         parent_layout.addWidget(group)
 
@@ -948,7 +1107,7 @@ class UltralyticsDialog(QDialog):
         # Basic settings
         basic_group = QGroupBox(self.tr("Basic"))
         basic_layout = QHBoxLayout(basic_group)
-        basic_layout.addWidget(QLabel("Epochs:"))
+        basic_layout.addWidget(QLabel(self.tr("Epochs:")))
         self.config_widgets["epochs"] = CustomSpinBox()
         self.config_widgets["epochs"].setRange(1, 10000)
         self.config_widgets["epochs"].setValue(
@@ -956,19 +1115,19 @@ class UltralyticsDialog(QDialog):
         )
         basic_layout.addWidget(self.config_widgets["epochs"])
 
-        basic_layout.addWidget(QLabel("Batch:"))
+        basic_layout.addWidget(QLabel(self.tr("Batch:")))
         self.config_widgets["batch"] = CustomSpinBox()
         self.config_widgets["batch"].setRange(-1, 8192)
         self.config_widgets["batch"].setValue(DEFAULT_TRAINING_CONFIG["batch"])
         basic_layout.addWidget(self.config_widgets["batch"])
 
-        basic_layout.addWidget(QLabel("Image Size:"))
+        basic_layout.addWidget(QLabel(self.tr("Image Size:")))
         self.config_widgets["imgsz"] = CustomSpinBox()
         self.config_widgets["imgsz"].setRange(32, 8192)
         self.config_widgets["imgsz"].setValue(DEFAULT_TRAINING_CONFIG["imgsz"])
         basic_layout.addWidget(self.config_widgets["imgsz"])
 
-        basic_layout.addWidget(QLabel("Workers:"))
+        basic_layout.addWidget(QLabel(self.tr("Workers:")))
         self.config_widgets["workers"] = CustomSpinBox()
         self.config_widgets["workers"].setRange(0, NUM_WORKERS)
         self.config_widgets["workers"].setValue(
@@ -976,7 +1135,7 @@ class UltralyticsDialog(QDialog):
         )
         basic_layout.addWidget(self.config_widgets["workers"])
 
-        basic_layout.addWidget(QLabel("Classes:"))
+        basic_layout.addWidget(QLabel(self.tr("Classes:")))
         self.config_widgets["classes"] = CustomLineEdit()
         self.config_widgets["classes"].setText(
             DEFAULT_TRAINING_CONFIG["classes"]
@@ -986,7 +1145,9 @@ class UltralyticsDialog(QDialog):
         )
         basic_layout.addWidget(self.config_widgets["classes"])
 
-        self.config_widgets["single_cls"] = CustomCheckBox("Single Class")
+        self.config_widgets["single_cls"] = CustomCheckBox(
+            self.tr("Single Class")
+        )
         self.config_widgets["single_cls"].setChecked(
             DEFAULT_TRAINING_CONFIG["single_cls"]
         )
@@ -1024,15 +1185,15 @@ class UltralyticsDialog(QDialog):
         advanced_layout = QVBoxLayout(self.advanced_content_widget)
 
         # 1. Training Strategy
-        strategy_group = QGroupBox("Training Strategy")
+        strategy_group = QGroupBox(self.tr("Training Strategy"))
         strat_layout = QHBoxLayout(strategy_group)
-        strat_layout.addWidget(QLabel("Time (h):"))
+        strat_layout.addWidget(QLabel(self.tr("Time (h):")))
         self.config_widgets["time"] = CustomDoubleSpinBox()
         self.config_widgets["time"].setValue(DEFAULT_TRAINING_CONFIG["time"])
-        self.config_widgets["time"].setSpecialValueText("None")
+        self.config_widgets["time"].setSpecialValueText(self.tr("None"))
         strat_layout.addWidget(self.config_widgets["time"])
 
-        strat_layout.addWidget(QLabel("Patience:"))
+        strat_layout.addWidget(QLabel(self.tr("Patience:")))
         self.config_widgets["patience"] = CustomSpinBox()
         self.config_widgets["patience"].setRange(1, 10000)
         self.config_widgets["patience"].setValue(
@@ -1040,7 +1201,7 @@ class UltralyticsDialog(QDialog):
         )
         strat_layout.addWidget(self.config_widgets["patience"])
 
-        strat_layout.addWidget(QLabel("Close Mosaic:"))
+        strat_layout.addWidget(QLabel(self.tr("Close Mosaic:")))
         self.config_widgets["close_mosaic"] = CustomSpinBox()
         self.config_widgets["close_mosaic"].setRange(0, 1000)
         self.config_widgets["close_mosaic"].setValue(
@@ -1048,20 +1209,22 @@ class UltralyticsDialog(QDialog):
         )
         strat_layout.addWidget(self.config_widgets["close_mosaic"])
 
-        strat_layout.addWidget(QLabel("Optimizer:"))
+        strat_layout.addWidget(QLabel(self.tr("Optimizer:")))
         self.config_widgets["optimizer"] = CustomComboBox()
         self.config_widgets["optimizer"].addItems(OPTIMIZER_OPTIONS)
         strat_layout.addWidget(self.config_widgets["optimizer"])
 
-        self.config_widgets["cos_lr"] = CustomCheckBox("Cosine LR")
+        self.config_widgets["cos_lr"] = CustomCheckBox(self.tr("Cosine LR"))
         self.config_widgets["cos_lr"].setChecked(
             DEFAULT_TRAINING_CONFIG["cos_lr"]
         )
         strat_layout.addWidget(self.config_widgets["cos_lr"])
-        self.config_widgets["amp"] = CustomCheckBox("AMP")
+        self.config_widgets["amp"] = CustomCheckBox(self.tr("AMP"))
         self.config_widgets["amp"].setChecked(DEFAULT_TRAINING_CONFIG["amp"])
         strat_layout.addWidget(self.config_widgets["amp"])
-        self.config_widgets["multi_scale"] = CustomCheckBox("Multi Scale")
+        self.config_widgets["multi_scale"] = CustomCheckBox(
+            self.tr("Multi Scale")
+        )
         self.config_widgets["multi_scale"].setChecked(
             DEFAULT_TRAINING_CONFIG["multi_scale"]
         )
@@ -1070,21 +1233,21 @@ class UltralyticsDialog(QDialog):
         advanced_layout.addWidget(strategy_group)
 
         # 2. Learning Rate
-        lr_group = QGroupBox("Learning Rate")
+        lr_group = QGroupBox(self.tr("Learning Rate"))
         lr_layout = QHBoxLayout(lr_group)
-        lr_layout.addWidget(QLabel("LR0:"))
+        lr_layout.addWidget(QLabel(self.tr("LR0:")))
         self.config_widgets["lr0"] = CustomDoubleSpinBox()
         self.config_widgets["lr0"].setDecimals(6)
         self.config_widgets["lr0"].setValue(DEFAULT_TRAINING_CONFIG["lr0"])
         lr_layout.addWidget(self.config_widgets["lr0"])
 
-        lr_layout.addWidget(QLabel("LRF:"))
+        lr_layout.addWidget(QLabel(self.tr("LRF:")))
         self.config_widgets["lrf"] = CustomDoubleSpinBox()
         self.config_widgets["lrf"].setDecimals(6)
         self.config_widgets["lrf"].setValue(DEFAULT_TRAINING_CONFIG["lrf"])
         lr_layout.addWidget(self.config_widgets["lrf"])
 
-        lr_layout.addWidget(QLabel("Momentum:"))
+        lr_layout.addWidget(QLabel(self.tr("Momentum:")))
         self.config_widgets["momentum"] = CustomDoubleSpinBox()
         self.config_widgets["momentum"].setDecimals(3)
         self.config_widgets["momentum"].setValue(
@@ -1092,7 +1255,7 @@ class UltralyticsDialog(QDialog):
         )
         lr_layout.addWidget(self.config_widgets["momentum"])
 
-        lr_layout.addWidget(QLabel("Weight Decay:"))
+        lr_layout.addWidget(QLabel(self.tr("Weight Decay:")))
         self.config_widgets["weight_decay"] = CustomDoubleSpinBox()
         self.config_widgets["weight_decay"].setDecimals(6)
         self.config_widgets["weight_decay"].setValue(
@@ -1103,9 +1266,9 @@ class UltralyticsDialog(QDialog):
         advanced_layout.addWidget(lr_group)
 
         # 3. Warmup Parameters
-        warmup_group = QGroupBox("Warmup Parameters")
+        warmup_group = QGroupBox(self.tr("Warmup Parameters"))
         warmup_layout = QHBoxLayout(warmup_group)
-        warmup_layout.addWidget(QLabel("Warmup Epochs:"))
+        warmup_layout.addWidget(QLabel(self.tr("Warmup Epochs:")))
         self.config_widgets["warmup_epochs"] = CustomDoubleSpinBox()
         self.config_widgets["warmup_epochs"].setDecimals(1)
         self.config_widgets["warmup_epochs"].setValue(
@@ -1113,7 +1276,7 @@ class UltralyticsDialog(QDialog):
         )
         warmup_layout.addWidget(self.config_widgets["warmup_epochs"])
 
-        warmup_layout.addWidget(QLabel("Warmup Momentum:"))
+        warmup_layout.addWidget(QLabel(self.tr("Warmup Momentum:")))
         self.config_widgets["warmup_momentum"] = CustomDoubleSpinBox()
         self.config_widgets["warmup_momentum"].setDecimals(3)
         self.config_widgets["warmup_momentum"].setValue(
@@ -1121,7 +1284,7 @@ class UltralyticsDialog(QDialog):
         )
         warmup_layout.addWidget(self.config_widgets["warmup_momentum"])
 
-        warmup_layout.addWidget(QLabel("Warmup Bias LR:"))
+        warmup_layout.addWidget(QLabel(self.tr("Warmup Bias LR:")))
         self.config_widgets["warmup_bias_lr"] = CustomDoubleSpinBox()
         self.config_widgets["warmup_bias_lr"].setDecimals(3)
         self.config_widgets["warmup_bias_lr"].setValue(
@@ -1132,7 +1295,7 @@ class UltralyticsDialog(QDialog):
         advanced_layout.addWidget(warmup_group)
 
         # 4. Augmentation Settings
-        augment_group = QGroupBox("Augmentation Settings")
+        augment_group = QGroupBox(self.tr("Augmentation Settings"))
         augment_layout = QVBoxLayout(augment_group)
         augment_params = [
             (
@@ -1208,7 +1371,7 @@ class UltralyticsDialog(QDialog):
             row = i // 4
             col = (i % 4) * 2
 
-            label_widget = QLabel(label)
+            label_widget = QLabel(self.tr(label))
             label_widget.setMinimumWidth(80)
             grid_layout.addWidget(label_widget, row, col)
 
@@ -1226,9 +1389,9 @@ class UltralyticsDialog(QDialog):
         advanced_layout.addWidget(augment_group)
 
         # 5. Regularization
-        reg_group = QGroupBox("Regularization")
+        reg_group = QGroupBox(self.tr("Regularization"))
         reg_layout = QHBoxLayout(reg_group)
-        reg_layout.addWidget(QLabel("Dropout:"))
+        reg_layout.addWidget(QLabel(self.tr("Dropout:")))
         self.config_widgets["dropout"] = CustomDoubleSpinBox()
         self.config_widgets["dropout"].setDecimals(3)
         self.config_widgets["dropout"].setValue(
@@ -1236,7 +1399,7 @@ class UltralyticsDialog(QDialog):
         )
         reg_layout.addWidget(self.config_widgets["dropout"])
 
-        reg_layout.addWidget(QLabel("Fraction:"))
+        reg_layout.addWidget(QLabel(self.tr("Fraction:")))
         self.config_widgets["fraction"] = CustomDoubleSpinBox()
         self.config_widgets["fraction"].setDecimals(3)
         self.config_widgets["fraction"].setValue(
@@ -1244,40 +1407,40 @@ class UltralyticsDialog(QDialog):
         )
         reg_layout.addWidget(self.config_widgets["fraction"])
 
-        self.config_widgets["rect"] = CustomCheckBox("Rectangular")
+        self.config_widgets["rect"] = CustomCheckBox(self.tr("Rectangular"))
         self.config_widgets["rect"].setChecked(DEFAULT_TRAINING_CONFIG["rect"])
         reg_layout.addWidget(self.config_widgets["rect"])
         reg_layout.addStretch()
         advanced_layout.addWidget(reg_group)
 
         # 6. Loss Weights
-        loss_group = QGroupBox("Loss Weights")
+        loss_group = QGroupBox(self.tr("Loss Weights"))
         loss_layout = QHBoxLayout(loss_group)
-        loss_layout.addWidget(QLabel("Box:"))
+        loss_layout.addWidget(QLabel(self.tr("Box:")))
         self.config_widgets["box"] = CustomDoubleSpinBox()
         self.config_widgets["box"].setDecimals(2)
         self.config_widgets["box"].setValue(DEFAULT_TRAINING_CONFIG["box"])
         loss_layout.addWidget(self.config_widgets["box"])
 
-        loss_layout.addWidget(QLabel("Cls:"))
+        loss_layout.addWidget(QLabel(self.tr("Cls:")))
         self.config_widgets["cls"] = CustomDoubleSpinBox()
         self.config_widgets["cls"].setDecimals(2)
         self.config_widgets["cls"].setValue(DEFAULT_TRAINING_CONFIG["cls"])
         loss_layout.addWidget(self.config_widgets["cls"])
 
-        loss_layout.addWidget(QLabel("DFL:"))
+        loss_layout.addWidget(QLabel(self.tr("DFL:")))
         self.config_widgets["dfl"] = CustomDoubleSpinBox()
         self.config_widgets["dfl"].setDecimals(2)
         self.config_widgets["dfl"].setValue(DEFAULT_TRAINING_CONFIG["dfl"])
         loss_layout.addWidget(self.config_widgets["dfl"])
 
-        loss_layout.addWidget(QLabel("Pose:"))
+        loss_layout.addWidget(QLabel(self.tr("Pose:")))
         self.config_widgets["pose"] = CustomDoubleSpinBox()
         self.config_widgets["pose"].setDecimals(2)
         self.config_widgets["pose"].setValue(DEFAULT_TRAINING_CONFIG["pose"])
         loss_layout.addWidget(self.config_widgets["pose"])
 
-        loss_layout.addWidget(QLabel("Kobj:"))
+        loss_layout.addWidget(QLabel(self.tr("Kobj:")))
         self.config_widgets["kobj"] = CustomDoubleSpinBox()
         self.config_widgets["kobj"].setDecimals(2)
         self.config_widgets["kobj"].setValue(DEFAULT_TRAINING_CONFIG["kobj"])
@@ -1286,45 +1449,47 @@ class UltralyticsDialog(QDialog):
         advanced_layout.addWidget(loss_group)
 
         # 7. Checkpoint and Validation
-        ckpt_group = QGroupBox("Checkpoint and Validation")
+        ckpt_group = QGroupBox(self.tr("Checkpoint and Validation"))
         ckpt_layout = QHBoxLayout(ckpt_group)
-        ckpt_layout.addWidget(QLabel("Save Period:"))
+        ckpt_layout.addWidget(QLabel(self.tr("Save Period:")))
         self.config_widgets["save_period"] = CustomSpinBox()
         self.config_widgets["save_period"].setRange(-1, 1000)
         self.config_widgets["save_period"].setValue(
             DEFAULT_TRAINING_CONFIG["save_period"]
         )
-        self.config_widgets["save_period"].setSpecialValueText("Disabled")
+        self.config_widgets["save_period"].setSpecialValueText(
+            self.tr("Disabled")
+        )
         ckpt_layout.addWidget(self.config_widgets["save_period"])
 
-        self.config_widgets["val"] = CustomCheckBox("Validation")
+        self.config_widgets["val"] = CustomCheckBox(self.tr("Validation"))
         self.config_widgets["val"].setChecked(DEFAULT_TRAINING_CONFIG["val"])
         ckpt_layout.addWidget(self.config_widgets["val"])
-        self.config_widgets["plots"] = CustomCheckBox("Plots")
+        self.config_widgets["plots"] = CustomCheckBox(self.tr("Plots"))
         self.config_widgets["plots"].setChecked(
             DEFAULT_TRAINING_CONFIG["plots"]
         )
         ckpt_layout.addWidget(self.config_widgets["plots"])
-        self.config_widgets["save"] = CustomCheckBox("Save")
+        self.config_widgets["save"] = CustomCheckBox(self.tr("Save"))
         self.config_widgets["save"].setChecked(DEFAULT_TRAINING_CONFIG["save"])
         ckpt_layout.addWidget(self.config_widgets["save"])
-        self.config_widgets["resume"] = CustomCheckBox("Resume")
+        self.config_widgets["resume"] = CustomCheckBox(self.tr("Resume"))
         self.config_widgets["resume"].setChecked(
             DEFAULT_TRAINING_CONFIG["resume"]
         )
         ckpt_layout.addWidget(self.config_widgets["resume"])
-        self.config_widgets["cache"] = CustomCheckBox("Cache")
+        self.config_widgets["cache"] = CustomCheckBox(self.tr("Cache"))
         self.config_widgets["cache"].setChecked(
             DEFAULT_TRAINING_CONFIG["cache"]
         )
         ckpt_layout.addWidget(self.config_widgets["cache"])
         self.config_widgets["skip_empty_files"] = CustomCheckBox(
-            "Skip Empty Files"
+            self.tr("Skip Empty Files")
         )
         self.config_widgets["skip_empty_files"].setChecked(False)
         ckpt_layout.addWidget(self.config_widgets["skip_empty_files"])
         self.config_widgets["only_checked_files"] = CustomCheckBox(
-            "Only Checked Files"
+            self.tr("Only Checked Files")
         )
         self.config_widgets["only_checked_files"].setChecked(False)
         ckpt_layout.addWidget(self.config_widgets["only_checked_files"])
@@ -1389,7 +1554,7 @@ class UltralyticsDialog(QDialog):
                                 str(value / 100.0)
                             )
                     elif key == "device":
-                        index = self.config_widgets[key].findText(str(value))
+                        index = self.config_widgets[key].findData(str(value))
                         if index >= 0:
                             self.config_widgets[key].setCurrentIndex(index)
                             self.on_device_changed(str(value))
@@ -1421,7 +1586,7 @@ class UltralyticsDialog(QDialog):
             self,
             self.tr("Import Config"),
             "",
-            "JSON Files (*.json);;All Files (*)",
+            self.tr("JSON Files (*.json);;All Files (*)"),
         )
         if file_path:
             config = load_config_from_file(file_path)
@@ -1449,6 +1614,8 @@ class UltralyticsDialog(QDialog):
                 elif widget_type in ["CustomSpinBox", "CustomDoubleSpinBox"]:
                     return widget.value()
                 elif widget_type == "CustomComboBox":
+                    if key == "device":
+                        return current_device(widget)
                     return widget.currentText()
                 elif widget_type == "CustomCheckBox":
                     return widget.isChecked()
@@ -1547,7 +1714,11 @@ class UltralyticsDialog(QDialog):
             QMessageBox.information(self, self.tr("Success"), msg_test)
         except Exception as e:
             QMessageBox.warning(
-                self, self.tr("Error"), f"Failed to save config: {str(e)}"
+                self,
+                self.tr("Error"),
+                QCoreApplication.translate(
+                    "Messages", "Failed to save config: {0}"
+                ).format(str(e)),
             )
 
     def _uses_existing_dataset(self, data_path):
@@ -1583,7 +1754,11 @@ class UltralyticsDialog(QDialog):
             is_valid, result = validate_data_file(data_path)
             if not is_valid:
                 QMessageBox.warning(self, self.tr("Validation Error"), result)
-                self.append_training_log(f"Validation Error: {result}")
+                self.append_training_log(
+                    QCoreApplication.translate(
+                        "Messages", "Validation Error: {0}"
+                    ).format(result)
+                )
                 return
             self.names = result
         if not self.image_list and not existing_dataset:
@@ -1594,7 +1769,11 @@ class UltralyticsDialog(QDialog):
             if dataset_error:
                 message = f"{message}\n{dataset_error}"
             QMessageBox.warning(self, self.tr("Validation Error"), message)
-            self.append_training_log(f"Validation Error: {message}")
+            self.append_training_log(
+                QCoreApplication.translate(
+                    "Messages", "Validation Error: {0}"
+                ).format(message)
+            )
             return
 
         try:
@@ -1644,7 +1823,9 @@ class UltralyticsDialog(QDialog):
                     self.previous_button.setVisible(True)
                     if not self.load_latest_training_log():
                         self.append_training_log(
-                            f"Loaded existing model from: {potential_model_path}"
+                            QCoreApplication.translate(
+                                "Messages", "Loaded existing model from: {0}"
+                            ).format(potential_model_path)
                         )
                     QTimer.singleShot(0, self.update_training_images)
                     return
@@ -1663,10 +1844,14 @@ class UltralyticsDialog(QDialog):
                 try:
                     shutil.rmtree(error_message)
                     self.append_training_log(
-                        f"Removed existing directory: {error_message}"
+                        QCoreApplication.translate(
+                            "Messages", "Removed existing directory: {0}"
+                        ).format(error_message)
                     )
                 except Exception as e:
-                    error_msg = f"Failed to remove directory: {str(e)}"
+                    error_msg = QCoreApplication.translate(
+                        "Messages", "Failed to remove directory: {0}"
+                    ).format(str(e))
                     logger.error(error_msg)
                     return
             else:
@@ -1675,7 +1860,11 @@ class UltralyticsDialog(QDialog):
             QMessageBox.warning(
                 self, self.tr("Validation Error"), error_message
             )
-            self.append_training_log(f"Validation Error: {error_message}")
+            self.append_training_log(
+                QCoreApplication.translate(
+                    "Messages", "Validation Error: {0}"
+                ).format(error_message)
+            )
             return
 
         if not self.selected_task_type:
@@ -1944,7 +2133,9 @@ class UltralyticsDialog(QDialog):
             return
         if event_type == "environment_error":
             self.environment_result = data.get("environment")
-            self.environment_error = data.get("error", "Unknown error")
+            self.environment_error = translate_worker_message(
+                data.get("error", "Unknown error")
+            )
             self.environment_error_type = data.get("error_type")
             if data.get("details"):
                 self.environment_error += "\n" + data["details"]
@@ -1989,8 +2180,14 @@ class UltralyticsDialog(QDialog):
             self.export_button.setVisible(False)
             self.progress_timer.stop()
             self.image_timer.stop()
-            error_msg = data.get("error", "Unknown error occurred")
-            self.append_training_log(f"ERROR: {error_msg}")
+            error_msg = translate_worker_message(
+                data.get("error", "Unknown error occurred")
+            )
+            self.append_training_log(
+                QCoreApplication.translate("Messages", "ERROR: {0}").format(
+                    error_msg
+                )
+            )
         elif event_type == "training_stopped":
             self.training_status = "stop"
             self.update_training_status_display()
@@ -2204,11 +2401,17 @@ class UltralyticsDialog(QDialog):
                 elif os.name == "posix":  # Linux
                     subprocess.run(["xdg-open", self.current_project_path])
             except Exception as e:
-                self.append_training_log(f"Failed to open directory: {str(e)}")
+                self.append_training_log(
+                    QCoreApplication.translate(
+                        "Messages", "Failed to open directory: {0}"
+                    ).format(str(e))
+                )
                 QMessageBox.information(
                     self,
                     self.tr("Info"),
-                    f"Directory path: {self.current_project_path}",
+                    QCoreApplication.translate(
+                        "Messages", "Directory path: {0}"
+                    ).format(self.current_project_path),
                 )
         else:
             QMessageBox.information(
@@ -2248,7 +2451,11 @@ class UltralyticsDialog(QDialog):
                     config["checkpoint"].get("only_checked_files", False),
                 )
                 logger.info(f"Successfully created YOLO dataset at {temp_dir}")
-                self.append_training_log(f"Created dataset: {temp_dir}")
+                self.append_training_log(
+                    QCoreApplication.translate(
+                        "Messages", "Created dataset: {0}"
+                    ).format(temp_dir)
+                )
 
                 if self.selected_task_type == "Classify":
                     data_path = temp_dir
@@ -2308,14 +2515,18 @@ class UltralyticsDialog(QDialog):
             for key, value in train_args.items():
                 cmd_parts.append(f"{key}={value}")
             self.append_training_log(
-                f"Training command: {' '.join(cmd_parts)}"
+                QCoreApplication.translate(
+                    "Messages", "Training command: {0}"
+                ).format(" ".join(cmd_parts))
             )
 
             return train_args
 
         except Exception as e:
             self.append_training_log(
-                f"Error preparing training args: {str(e)}"
+                QCoreApplication.translate(
+                    "Messages", "Error preparing training args: {0}"
+                ).format(str(e))
             )
             raise
 
@@ -2334,7 +2545,11 @@ class UltralyticsDialog(QDialog):
         try:
             data_path = config["basic"]["data"]
             if self._uses_existing_dataset(data_path):
-                self.append_training_log(f"Using custom dataset: {data_path}")
+                self.append_training_log(
+                    QCoreApplication.translate(
+                        "Messages", "Using custom dataset: {0}"
+                    ).format(data_path)
+                )
             else:
                 self.append_training_log(
                     self.tr("Using workspace snapshot: {count} images").format(
@@ -2351,14 +2566,20 @@ class UltralyticsDialog(QDialog):
             success, message = self.training_manager.start_training(train_args)
             if not success:
                 self.append_training_log(
-                    f"Failed to start training: {message}"
+                    QCoreApplication.translate(
+                        "Messages", "Failed to start training: {0}"
+                    ).format(message)
                 )
                 QMessageBox.critical(self, self.tr("Training Error"), message)
                 return
 
         except Exception as e:
-            error_msg = f"Failed to start training: {str(e)}"
-            self.append_training_log(f"ERROR: {error_msg}")
+            error_msg = self.tr("Failed to start training: %s") % e
+            self.append_training_log(
+                QCoreApplication.translate("Messages", "ERROR: {0}").format(
+                    error_msg
+                )
+            )
             QMessageBox.critical(self, self.tr("Training Error"), error_msg)
 
     def init_training_actions(self, parent_layout):
@@ -2432,9 +2653,8 @@ class UltralyticsDialog(QDialog):
             exported_path = data.get("exported_path", "")
             export_format = data.get("format", "onnx")
             self.append_training_log(
-                self.tr(
-                    f"Export completed successfully! File saved to: {exported_path}"
-                )
+                self.tr("Export completed successfully! File saved to: %s")
+                % exported_path
             )
             export_dialog = getattr(self, "export_dialog", None)
             if export_format == "onnx" and export_dialog is not None:
@@ -2444,16 +2664,21 @@ class UltralyticsDialog(QDialog):
                 QMessageBox.information(
                     self,
                     self.tr("Export Successful"),
-                    self.tr(
-                        f"Model successfully exported to {export_format.upper()} format:\n{exported_path}"
-                    ),
+                    self.tr("Model successfully exported to %s format:\n%s")
+                    % (export_format.upper(), exported_path),
                 )
                 if export_dialog is not None:
                     export_dialog.accept()
             self.reset_export_button()
         elif event_type == "export_error":
-            error_msg = data.get("error", "Unknown error occurred")
-            self.append_training_log(f"ERROR: {error_msg}")
+            error_msg = translate_worker_message(
+                data.get("error", "Unknown error occurred")
+            )
+            self.append_training_log(
+                QCoreApplication.translate("Messages", "ERROR: {0}").format(
+                    error_msg
+                )
+            )
             QMessageBox.warning(self, self.tr("Export Error"), error_msg)
             export_dialog = getattr(self, "export_dialog", None)
             if export_dialog is not None:
@@ -2466,7 +2691,7 @@ class UltralyticsDialog(QDialog):
                 export_dialog.reset_export()
             self.reset_export_button()
         elif event_type == "export_log":
-            log_message = data.get("message", "")
+            log_message = translate_worker_message(data.get("message", ""))
             if log_message:
                 self.append_training_log(log_message)
 
@@ -2509,7 +2734,11 @@ class UltralyticsDialog(QDialog):
                 self.export_dialog.set_exporting(self.external_environment)
             return
         QMessageBox.critical(self, self.tr("Export Error"), message)
-        self.append_training_log(f"Failed to start export: {message}")
+        self.append_training_log(
+            QCoreApplication.translate(
+                "Messages", "Failed to start export: {0}"
+            ).format(message)
+        )
 
     def apply_exported_model(self):
         if not self.exported_onnx_path:
@@ -2547,7 +2776,11 @@ class UltralyticsDialog(QDialog):
             )
             return
 
-        self.append_training_log(f"Applied model configuration: {config_path}")
+        self.append_training_log(
+            QCoreApplication.translate(
+                "Messages", "Applied model configuration: {0}"
+            ).format(config_path)
+        )
         if self.export_dialog is not None:
             self.export_dialog.accept()
         self.close()

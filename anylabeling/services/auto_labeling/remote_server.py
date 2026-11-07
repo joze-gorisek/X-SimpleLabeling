@@ -199,7 +199,11 @@ class RemoteServer(Model):
             cv_image_bgr = cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR)
             is_success, buffer = cv2.imencode(".png", cv_image_bgr)
             if not is_success:
-                raise ValueError("Failed to encode image.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Failed to encode image."
+                    )
+                )
             img_base64 = base64.b64encode(buffer).decode("utf-8")
             img_data_uri = f"data:image/png;base64,{img_base64}"
 
@@ -304,7 +308,11 @@ class RemoteServer(Model):
 
         except Exception as e:
             logger.error(f"Remote server error: {e}")
-            self.on_message(f"Remote server error: {e}")
+            self.on_message(
+                QCoreApplication.translate(
+                    "Messages", "Remote server error: {0}"
+                ).format(e)
+            )
             return AutoLabelingResult([], replace=self.replace)
 
     @staticmethod
@@ -314,25 +322,45 @@ class RemoteServer(Model):
         for artifact in artifacts:
             kind = artifact.get("kind")
             if kind not in {"alpha", "mask", "cutout"}:
-                raise ValueError(f"Unsupported image artifact: {kind}")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Unsupported image artifact: {0}"
+                    ).format(kind)
+                )
             content = base64.b64decode(artifact["png_base64"], validate=True)
             if not content.startswith(b"\x89PNG\r\n\x1a\n"):
-                raise ValueError("Invalid PNG image artifact")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Invalid PNG image artifact"
+                    )
+                )
             decoded = cv2.imdecode(
                 np.frombuffer(content, dtype=np.uint8), cv2.IMREAD_UNCHANGED
             )
             if decoded is None:
-                raise ValueError("Invalid PNG image artifact")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Invalid PNG image artifact"
+                    )
+                )
             images.append((kind, content))
             if kind == "cutout":
                 cutout = decoded
                 if cutout.ndim != 3 or cutout.shape[2] != 4:
-                    raise ValueError("Cutout artifacts require RGBA pixels")
+                    raise ValueError(
+                        QCoreApplication.translate(
+                            "Messages", "Cutout artifacts require RGBA pixels"
+                        )
+                    )
                 if preview is None:
                     preview = cutout
                 else:
                     if cutout.shape != preview.shape:
-                        raise ValueError("Cutout dimensions must match")
+                        raise ValueError(
+                            QCoreApplication.translate(
+                                "Messages", "Cutout dimensions must match"
+                            )
+                        )
                     foreground = cutout[:, :, 3] > preview[:, :, 3]
                     preview[foreground] = cutout[foreground]
         source = Path(image_path) if image_path else None
@@ -349,7 +377,11 @@ class RemoteServer(Model):
         if preview is not None:
             ok, encoded = cv2.imencode(".png", preview)
             if not ok:
-                raise ValueError("Failed to encode cutout preview")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Failed to encode cutout preview"
+                    )
+                )
             (output_dir / "preview.png").write_bytes(encoded.tobytes())
         return output_dir
 
@@ -521,7 +553,11 @@ class RemoteServer(Model):
 
         except Exception as e:
             logger.error(f"Video prompt error: {e}")
-            self.on_message(f"Video prompt error: {e}")
+            self.on_message(
+                QCoreApplication.translate(
+                    "Messages", "Video prompt error: {0}"
+                ).format(e)
+            )
             self._reset_video_session()
             return AutoLabelingResult([], replace=self.replace)
 
@@ -713,7 +749,11 @@ class RemoteServer(Model):
 
         except Exception as e:
             logger.error(f"Video point prompt error: {e}")
-            self.on_message(f"Video point prompt error: {e}")
+            self.on_message(
+                QCoreApplication.translate(
+                    "Messages", "Video point prompt error: {0}"
+                ).format(e)
+            )
             self._reset_video_session()
             return AutoLabelingResult([], replace=False)
 
@@ -840,7 +880,11 @@ class RemoteServer(Model):
                 elif event_type == "error":
                     error_msg = event.get("message", "Unknown error")
                     logger.error(f"Propagation error: {error_msg}")
-                    self.on_message(f"Propagation failed: {error_msg}")
+                    self.on_message(
+                        QCoreApplication.translate(
+                            "Messages", "Propagation failed: {0}"
+                        ).format(error_msg)
+                    )
                     self._reset_video_session()
                     return AutoLabelingResult([], replace=False)
 
@@ -925,13 +969,21 @@ class RemoteServer(Model):
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Video propagation request error: {e}")
-            self.on_message(f"Video propagation error: {e}")
+            self.on_message(
+                QCoreApplication.translate(
+                    "Messages", "Video propagation error: {0}"
+                ).format(e)
+            )
             self._reset_video_session()
             self.label, self.group_id = None, None
             return AutoLabelingResult([], replace=False)
         except Exception as e:
             logger.error(f"Video propagation error: {e}", exc_info=True)
-            self.on_message(f"Video propagation error: {e}")
+            self.on_message(
+                QCoreApplication.translate(
+                    "Messages", "Video propagation error: {0}"
+                ).format(e)
+            )
             self._reset_video_session()
             self.label, self.group_id = None, None
             return AutoLabelingResult([], replace=False)

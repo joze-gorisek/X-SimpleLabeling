@@ -61,7 +61,7 @@
 * Integrates a wide range of state-of-the-art deep learning models for AI-assisted annotation, automated labeling, and batch dataset prediction.
 * Supports both local and remote inference through engines and serving frameworks such as `ONNX Runtime`, `TensorRT`, `OpenCV DNN`, `vLLM`, and `SGLang`.
 * Supports importing and exporting formats such as `COCO`, `VOC`, `YOLO`, `DOTA`, `MOT`, `MASK`, `PPOCR`, `MMGD`, `VLM-R1`, and `ShareGPT`.
-* Runs on Windows, Linux, and macOS, with interfaces available in English, Simplified Chinese, Japanese, and Korean.
+* Runs on Windows, Linux, and macOS, with interfaces available in English, Simplified Chinese, Japanese, Korean, and Slovenian.
 * Supports custom model integration, flexible extension, and secondary development.
 
 ## Model library

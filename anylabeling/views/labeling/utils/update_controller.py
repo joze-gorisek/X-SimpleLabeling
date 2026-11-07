@@ -53,7 +53,7 @@ class UpdateController(QObject):
             getattr(wrapper, "view", None), "update_button", None
         )
         self.anchor = getattr(
-            getattr(wrapper, "view", None), "shortcuts_button", None
+            getattr(wrapper, "view", None), "settings_button", None
         )
         if self.button is not None:
             self.button.clicked.connect(self.show_panel)

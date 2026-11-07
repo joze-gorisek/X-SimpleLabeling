@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import os
 import re
@@ -15,6 +17,8 @@ from .utils import detect_ffmpeg, ms_to_seconds, safe_stem
 
 _SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._\-]+")
 SEGMENT_EXPORT_TIMEOUT = 1800
+# Internal result value compared by the dialog, which shows translated text.
+EXPORT_CANCELLED = "Cancelled"
 
 
 def safe_token(name, fallback="x"):
@@ -71,22 +75,36 @@ class ExporterWorker(QObject):
             if not ffmpeg:
                 self.finished.emit(
                     False,
-                    "ffmpeg was not found. Install ffmpeg or "
-                    "imageio-ffmpeg to export clips.",
+                    QCoreApplication.translate(
+                        "Messages",
+                        "ffmpeg was not found. Install ffmpeg or imageio-ffmpeg to export clips.",
+                    ),
                 )
                 return
 
             pairs = self._scan_pairs(cfg)
             if not pairs:
-                self.finished.emit(False, "No video+sidecar pairs found")
+                self.finished.emit(
+                    False,
+                    QCoreApplication.translate(
+                        "Messages", "No video+sidecar pairs found"
+                    ),
+                )
                 return
 
             tasks, label_map = self._collect_tasks(pairs)
             if not tasks:
-                self.finished.emit(False, "No segments to export")
+                self.finished.emit(
+                    False,
+                    QCoreApplication.translate(
+                        "Messages", "No segments to export"
+                    ),
+                )
                 return
             self.logged.emit(
-                f"Collected {len(tasks)} segments across {len(label_map)} labels"
+                QCoreApplication.translate(
+                    "Messages", "Collected {0} segments across {1} labels"
+                ).format(len(tasks), len(label_map))
             )
 
             os.makedirs(cfg.output_dir, exist_ok=True)
@@ -98,7 +116,7 @@ class ExporterWorker(QObject):
 
             for task in tasks:
                 if self.is_cancelled():
-                    self.finished.emit(False, "Cancelled")
+                    self.finished.emit(False, EXPORT_CANCELLED)
                     return
                 video_token = safe_token(task["video_stem"])
                 label_token = safe_token(task["label"])
@@ -160,18 +178,28 @@ class ExporterWorker(QObject):
             zip_path = ""
             if cfg.zip_output:
                 if self.is_cancelled():
-                    self.finished.emit(False, "Cancelled")
+                    self.finished.emit(False, EXPORT_CANCELLED)
                     return
-                self.progressChanged.emit(99, "Zipping output…")
+                self.progressChanged.emit(
+                    99,
+                    QCoreApplication.translate("Messages", "Zipping output…"),
+                )
                 zip_path = self._zip_output(cfg.output_dir)
 
             tail = f" ({zip_path})" if zip_path else ""
             self.finished.emit(
                 True,
-                f"Exported {done} segments to {cfg.output_dir}{tail}",
+                QCoreApplication.translate(
+                    "Messages", "Exported {0} segments to {1}{2}"
+                ).format(done, cfg.output_dir, tail),
             )
         except Exception as exc:
-            self.finished.emit(False, f"Export failed: {exc}")
+            self.finished.emit(
+                False,
+                QCoreApplication.translate(
+                    "Messages", "Export failed: {0}"
+                ).format(exc),
+            )
 
     # ----------------------------------------------------------------
     def _scan_pairs(self, cfg):
@@ -413,30 +441,39 @@ class SegmentExporterWorker(QObject):
         start = ms_to_seconds(self.start_ms)
         duration = ms_to_seconds(self.end_ms) - start
         if duration <= 0:
-            self.finished.emit(False, "Selected segment duration is invalid.")
+            self.finished.emit(
+                False,
+                QCoreApplication.translate(
+                    "Messages", "Selected segment duration is invalid."
+                ),
+            )
             return
 
         os.makedirs(
             os.path.dirname(os.path.abspath(self.output_path)), exist_ok=True
         )
         deadline = time.monotonic() + SEGMENT_EXPORT_TIMEOUT
-        self.progressChanged.emit("Copying video stream...")
+        self.progressChanged.emit(
+            QCoreApplication.translate("Messages", "Copying video stream...")
+        )
         ok, error = self._run_ffmpeg(
             self._command(start, duration, re_encode=False),
-            "Stream copy",
+            QCoreApplication.translate("Messages", "Stream copy"),
             deadline,
         )
         if not ok and not self.is_cancelled():
             self.progressChanged.emit(
-                "Stream copy failed; re-encoding video..."
+                QCoreApplication.translate(
+                    "Messages", "Stream copy failed; re-encoding video..."
+                )
             )
             ok, error = self._run_ffmpeg(
                 self._command(start, duration, re_encode=True),
-                "Re-encode",
+                QCoreApplication.translate("Messages", "Re-encode"),
                 deadline,
             )
         if self.is_cancelled():
-            self.finished.emit(False, "Cancelled")
+            self.finished.emit(False, EXPORT_CANCELLED)
             return
         self.finished.emit(ok, error)
 
@@ -472,7 +509,9 @@ class SegmentExporterWorker(QObject):
     def _run_ffmpeg(self, cmd, stage, deadline):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            return False, f"{stage} timed out."
+            return False, QCoreApplication.translate(
+                "Messages", "{0} timed out."
+            ).format(stage)
         kwargs = {}
         if os.name == "nt":
             kwargs["creationflags"] = getattr(
@@ -487,7 +526,9 @@ class SegmentExporterWorker(QObject):
                 **kwargs,
             )
         except OSError as exc:
-            return False, f"{stage} failed to start: {exc}"
+            return False, QCoreApplication.translate(
+                "Messages", "{0} failed to start: {1}"
+            ).format(stage, exc)
 
         with self._process_lock:
             self._process = process
@@ -500,8 +541,9 @@ class SegmentExporterWorker(QObject):
                 if remaining <= 0:
                     self._stop_process(process)
                     return False, (
-                        f"{stage} timed out after "
-                        f"{SEGMENT_EXPORT_TIMEOUT} seconds."
+                        QCoreApplication.translate(
+                            "Messages", "{0} timed out after {1} seconds."
+                        ).format(stage, SEGMENT_EXPORT_TIMEOUT)
                     )
                 try:
                     _, stderr = process.communicate(
@@ -523,7 +565,9 @@ class SegmentExporterWorker(QObject):
         detail = error.strip()[-400:]
         return (
             False,
-            f"{stage} failed (exit code {process.returncode}): {detail}",
+            QCoreApplication.translate(
+                "Messages", "{0} failed (exit code {1}): {2}"
+            ).format(stage, process.returncode, detail),
         )
 
     @staticmethod

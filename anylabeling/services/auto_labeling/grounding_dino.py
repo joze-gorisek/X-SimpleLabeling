@@ -52,8 +52,8 @@ class Grounding_DINO(Model):
             raise FileNotFoundError(
                 QCoreApplication.translate(
                     "Model",
-                    f"Could not download or initialize {model_type} model.",
-                )
+                    "Could not download or initialize {model_name} model.",
+                ).format(model_name=model_type)
             )
 
         self.net = OnnxBaseModel(model_abs_path, __preferred_device__)

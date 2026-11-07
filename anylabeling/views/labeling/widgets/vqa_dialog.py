@@ -77,7 +77,7 @@ class VQADialog(QDialog):
             parent: Parent widget, defaults to None
         """
         super().__init__(parent)
-        self.setWindowTitle(DEFAULT_WINDOW_TITLE)
+        self.setWindowTitle(self.tr(DEFAULT_WINDOW_TITLE))
         self.setWindowFlags(
             Qt.WindowType.Window
             | Qt.WindowType.WindowMinimizeButtonHint
@@ -925,7 +925,7 @@ class VQADialog(QDialog):
 
         elif comp_type == "QComboBox":
             widget.clear()
-            widget.addItem("-- Select --")
+            widget.addItem(self.tr("-- Select --"))
             for option in new_options:
                 if option.strip():
                     widget.addItem(option.strip())
@@ -1236,7 +1236,7 @@ class VQADialog(QDialog):
 
         elif comp_type == "QComboBox":
             widget = QComboBox()
-            widget.addItem("-- Select --")
+            widget.addItem(self.tr("-- Select --"))
             for option in options:
                 if option.strip():
                     widget.addItem(option.strip())
@@ -1398,7 +1398,11 @@ class VQADialog(QDialog):
             return None
         elif comp_type == "QComboBox":
             current_text = widget.currentText()
-            return current_text if current_text != "-- Select --" else None
+            return (
+                current_text
+                if current_text != self.tr("-- Select --")
+                else None
+            )
         elif comp_type == "QCheckBox":
             selected = []
             layout = widget.layout()
@@ -1515,7 +1519,7 @@ class VQADialog(QDialog):
             self,
             self.tr("Export Labels"),
             self.tr("vqa_labels.jsonl"),
-            "JSONL files (*.jsonl)",
+            self.tr("JSONL files (*.jsonl)"),
         )[0]
         if not export_path:
             return
@@ -1791,12 +1795,12 @@ class VQADialog(QDialog):
 
         widget.blockSignals(True)
         widget.clear()
-        widget.addItem("-- Select --")
+        widget.addItem(self.tr("-- Select --"))
         for option in new_options:
             if option.strip():
                 widget.addItem(option.strip())
 
-        if current_selection and current_selection != "-- Select --":
+        if current_selection and current_selection != self.tr("-- Select --"):
             index = widget.findText(current_selection)
             widget.setCurrentIndex(index if index >= 0 else 0)
 

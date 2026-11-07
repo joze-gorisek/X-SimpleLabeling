@@ -3,6 +3,9 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from anylabeling.views.labeling.utils.theme import get_mode, get_theme
 
+TOOL_BUTTON_SIZE = 44
+TOOL_ICON_SIZE = 30
+
 
 class ToolBarScrollArea(QtWidgets.QScrollArea):
     def wheelEvent(self, event):
@@ -21,8 +24,8 @@ class ToolBar(QtWidgets.QFrame):
         self.setWindowTitle(title)
         self._orientation = QtCore.Qt.Orientation.Vertical
         self._tool_button_style = QtCore.Qt.ToolButtonStyle.ToolButtonIconOnly
-        self._icon_size = QtCore.QSize(18, 18)
-        self._button_size = 26
+        self._icon_size = QtCore.QSize(TOOL_ICON_SIZE, TOOL_ICON_SIZE)
+        self._button_size = TOOL_BUTTON_SIZE
         self._owned_widgets = []
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -144,12 +147,13 @@ class ToolBar(QtWidgets.QFrame):
         self._owned_widgets = []
 
     def setUiScale(self, scale):
-        self._button_size = round(26 * scale)
-        self.setIconSize(QtCore.QSize(round(18 * scale), round(18 * scale)))
+        self._button_size = round(TOOL_BUTTON_SIZE * scale)
+        icon_size = round(TOOL_ICON_SIZE * scale)
+        self.setIconSize(QtCore.QSize(icon_size, icon_size))
         if self._orientation == QtCore.Qt.Orientation.Horizontal:
-            self.setFixedHeight(round(26 * scale))
+            self.setFixedHeight(self._button_size)
         else:
-            self.setFixedWidth(round(40 * scale))
+            self.setFixedWidth(self._button_size)
         for button in self.findChildren(QtWidgets.QToolButton):
             button.setFixedSize(self._button_size, self._button_size)
         self._content_layout.invalidate()
@@ -189,10 +193,10 @@ class ToolBar(QtWidgets.QFrame):
             f"background-color: {get_theme()['text_secondary']};"
         )
         if self._orientation == QtCore.Qt.Orientation.Vertical:
-            separator.setFixedSize(24, 1)
+            separator.setFixedSize(TOOL_ICON_SIZE, 1)
             separator.setContentsMargins(6, 4, 6, 4)
         else:
-            separator.setFixedSize(1, 18)
+            separator.setFixedSize(1, TOOL_ICON_SIZE)
         self._owned_widgets.append(separator)
         self._content_layout.addWidget(
             separator, 0, QtCore.Qt.AlignmentFlag.AlignCenter

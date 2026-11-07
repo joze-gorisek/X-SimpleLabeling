@@ -77,7 +77,11 @@ from .widgets.relation_dialog import (
     RelationManagerDialog,
     show_relation_message,
 )
-from .widgets.toolbar import ToolBarScrollArea
+from .widgets.toolbar import (
+    TOOL_BUTTON_SIZE,
+    TOOL_ICON_SIZE,
+    ToolBarScrollArea,
+)
 from .widgets.panel import (
     PanelCheckBox,
     HoverControl,
@@ -201,6 +205,15 @@ class SidebarSplitterHandle(QtWidgets.QSplitterHandle):
 class SidebarSplitter(QtWidgets.QSplitter):
     def createHandle(self):
         return SidebarSplitterHandle(self.orientation(), self)
+
+
+SUPPORTED_LANGUAGES = {
+    "en_US": "English",
+    "zh_CN": "中文",
+    "ja_JP": "日本語",
+    "ko_KR": "한국어",
+    "sl_SI": "Slovenščina",
+}
 
 
 class LabelingWidget(LabelDialog):
@@ -362,7 +375,7 @@ class LabelingWidget(LabelDialog):
             "QListWidget::item { padding: 0; }"
         )
 
-        self.shape_text_label = QLabel("Object Text")
+        self.shape_text_label = QLabel(self.tr("Object Text"))
         self.shape_text_edit = DescriptionEditor()
         self.description_checkbox = PanelCheckBox()
         self.description_checkbox.setChecked(
@@ -398,13 +411,15 @@ class LabelingWidget(LabelDialog):
         self.file_search.returnPressed.connect(self.file_search_changed)
         self.file_search.returnPressed.connect(self.file_search.setFocus)
         self.settings_button = QtWidgets.QToolButton(self)
-        self.settings_button.setFixedSize(26, 26)
+        self.settings_button.setFixedSize(TOOL_BUTTON_SIZE, TOOL_BUTTON_SIZE)
         self.settings_button.setCursor(
             QtCore.Qt.CursorShape.PointingHandCursor
         )
         self.settings_button.setToolTip(self.tr("Settings"))
         self.settings_button.setIcon(utils.new_icon("settings", "svg"))
-        self.settings_button.setIconSize(QtCore.QSize(18, 18))
+        self.settings_button.setIconSize(
+            QtCore.QSize(TOOL_ICON_SIZE, TOOL_ICON_SIZE)
+        )
         self.settings_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.settings_button.setAccessibleName(self.settings_button.toolTip())
         self.settings_button.clicked.connect(self.open_settings_dialog)
@@ -1540,35 +1555,18 @@ class LabelingWidget(LabelDialog):
         )
 
         # Languages
-        select_lang_en = action(
-            "English",
-            functools.partial(self.set_language, "en_US"),
-            checkable=True,
-            checked=self._config["language"] == "en_US",
-            enabled=self._config["language"] != "en_US",
-        )
-        select_lang_zh = action(
-            "中文",
-            functools.partial(self.set_language, "zh_CN"),
-            checkable=True,
-            checked=self._config["language"] == "zh_CN",
-            enabled=self._config["language"] != "zh_CN",
-        )
-
-        select_lang_jp = action(
-            "日本語",
-            functools.partial(self.set_language, "ja_JP"),
-            checkable=True,
-            checked=self._config["language"] == "ja_JP",
-            enabled=self._config["language"] != "ja_JP",
-        )
-        select_lang_ko = action(
-            "한국어",
-            functools.partial(self.set_language, "ko_KR"),
-            checkable=True,
-            checked=self._config["language"] == "ko_KR",
-            enabled=self._config["language"] != "ko_KR",
-        )
+        language_group = QtGui.QActionGroup(self)
+        language_group.setExclusive(True)
+        language_actions = []
+        for code, name in SUPPORTED_LANGUAGES.items():
+            language_action = action(
+                name,
+                functools.partial(self.set_language, code),
+                checkable=True,
+                checked=self._config["language"] == code,
+            )
+            language_group.addAction(language_action)
+            language_actions.append(language_action)
 
         # Theme menu options (System / Light / Dark)
         theme_mode_actions = []
@@ -2124,8 +2122,6 @@ class LabelingWidget(LabelDialog):
             # XXX: need to add some actions here to activate the shortcut
             editMenu=(
                 edit,
-                create_relation,
-                manage_relations,
                 duplicate,
                 delete,
                 copy,
@@ -2137,6 +2133,7 @@ class LabelingWidget(LabelDialog):
                 copy_coordinates,
                 remove_point,
                 union_selection,
+                select_toggle_shapes,
                 None,
                 keep_prev_mode,
                 auto_use_last_label_mode,
@@ -2149,20 +2146,10 @@ class LabelingWidget(LabelDialog):
                 create_mode,
                 create_brush_polygon_mode,
                 create_magic_wand_mode,
-                create_rectangle_mode,
-                create_cuboid_mode,
-                create_rotation_mode,
-                create_quadrilateral_mode,
-                create_circle_mode,
-                create_line_mode,
-                create_point_mode,
-                create_line_strip_mode,
                 None,
                 edit_mode,
                 edit_brush_mode,
                 edit,
-                create_relation,
-                manage_relations,
                 toggle_shape_lock,
                 None,
                 copy_coordinates,
@@ -2233,6 +2220,7 @@ class LabelingWidget(LabelDialog):
             self.actions.remove_point.setEnabled
         )
 
+        self.language_button = None
         self.menus = utils.Struct(
             file=self.menu(self.tr("File")),
             edit=self.menu(self.tr("Edit")),
@@ -2242,7 +2230,6 @@ class LabelingWidget(LabelDialog):
             upload=self.menu(self.tr("Upload")),
             export=self.menu(self.tr("Export")),
             tool=self.menu(self.tr("Tool")),
-            workflow=self.menu(self.tr("Workflow")),
             train=self.menu(self.tr("Train")),
             help=self.menu(self.tr("Help")),
             recent_files=QtWidgets.QMenu(self.tr("Open Recent")),
@@ -2260,6 +2247,8 @@ class LabelingWidget(LabelDialog):
                 open_,
                 open_next_image,
                 open_prev_image,
+                jump_next_images,
+                jump_prev_images,
                 open_next_unchecked_image,
                 open_prev_unchecked_image,
                 opendir,
@@ -2280,17 +2269,6 @@ class LabelingWidget(LabelDialog):
         )
         utils.add_actions(self.menus.train, (ultralytics_train,))
         utils.add_actions(
-            self.menus.workflow,
-            (
-                open_chatbot,
-                open_vqa,
-                open_image_classifier,
-                open_paddleocr,
-                open_video_classifier,
-                open_pointcloud,
-            ),
-        )
-        utils.add_actions(
             self.menus.tool,
             (
                 overview,
@@ -2304,27 +2282,25 @@ class LabelingWidget(LabelDialog):
                 gid_manager,
                 shape_manager,
                 None,
-                shape_converter,
+                run_all_images,
             ),
         )
         utils.add_actions(
             self.menus.help,
             (
                 documentation,
+                action(
+                    self.tr("Shortcuts"),
+                    self.show_shortcuts,
+                    icon="command",
+                    tip=self.tr("Shortcuts"),
+                ),
                 sponsor,
                 None,
                 about,
             ),
         )
-        utils.add_actions(
-            self.menus.language,
-            (
-                select_lang_en,
-                select_lang_zh,
-                select_lang_jp,
-                select_lang_ko,
-            ),
-        )
+        utils.add_actions(self.menus.language, language_actions)
         utils.add_actions(self.menus.theme, theme_mode_actions)
         utils.add_actions(
             self.menus.upload,
@@ -2333,56 +2309,19 @@ class LabelingWidget(LabelDialog):
                 upload_label_flags_file,
                 upload_label_classes_file,
                 None,
-                upload_yolo_hbb_annotation,
-                upload_yolo_obb_annotation,
                 upload_yolo_seg_annotation,
-                upload_yolo_pose_annotation,
-                None,
-                upload_voc_det_annotation,
                 upload_voc_seg_annotation,
-                None,
-                upload_coco_det_annotation,
                 upload_coco_seg_annotation,
-                upload_coco_pose_annotation,
-                None,
-                upload_dota_annotation,
                 upload_mask_annotation,
-                upload_mot_annotation,
-                upload_odvg_annotation,
-                upload_mmgd_annotation,
-                None,
-                upload_ppocr_rec_annotation,
-                upload_ppocr_kie_annotation,
-                None,
-                upload_vlm_r1_ovd_annotation,
             ),
         )
         utils.add_actions(
             self.menus.export,
             (
-                export_yolo_hbb_annotation,
-                export_yolo_obb_annotation,
                 export_yolo_seg_annotation,
-                export_yolo_pose_annotation,
-                None,
-                export_voc_det_annotation,
                 export_voc_seg_annotation,
-                None,
-                export_coco_det_annotation,
                 export_coco_seg_annotation,
-                export_coco_pose_annotation,
-                None,
-                export_dota_annotation,
                 export_mask_annotation,
-                export_odvg_annotation,
-                None,
-                export_mot_annotation,
-                export_mots_annotation,
-                None,
-                export_pporc_rec_annotation,
-                export_pporc_kie_annotation,
-                None,
-                export_vlm_r1_ovd_annotation,
             ),
         )
         utils.add_actions(
@@ -2409,9 +2348,7 @@ class LabelingWidget(LabelDialog):
                 show_texts,
                 show_labels,
                 show_scores,
-                show_degrees,
                 show_attributes,
-                show_linking,
                 show_groups,
                 hide_selected_polygons,
                 show_hidden_polygons,
@@ -2430,8 +2367,8 @@ class LabelingWidget(LabelDialog):
         utils.add_actions(
             self.canvas.menus[1],
             (
-                action("&Copy here", self.copy_shape),
-                action("&Move here", self.move_shape),
+                action(self.tr("&Copy here"), self.copy_shape),
+                action(self.tr("&Move here"), self.move_shape),
             ),
         )
         (
@@ -2448,53 +2385,19 @@ class LabelingWidget(LabelDialog):
         )
 
         self.tools = self.toolbar("Tools")
+        self.tools.setWindowTitle(self.tr("Tools"))
         # Menu buttons on Left
         self.actions.tool = (
-            # open_,
             opendir,
-            jump_next_images,
-            open_next_image,
             open_prev_image,
-            jump_prev_images,
-            save,
-            delete_file,
+            open_next_image,
             None,
             create_mode,
-            self.actions.create_brush_polygon_mode,
-            self.actions.create_magic_wand_mode,
-            self.actions.create_rectangle_mode,
-            self.actions.create_cuboid_mode,
-            self.actions.create_rotation_mode,
-            self.actions.create_quadrilateral_mode,
-            self.actions.create_circle_mode,
-            self.actions.create_line_mode,
-            self.actions.create_point_mode,
-            self.actions.create_line_strip_mode,
-            None,
-            edit_brush_mode,
             edit_mode,
-            create_relation,
             delete,
             undo,
-            loop_thru_labels,
-            loop_select_labels,
-            select_toggle_shapes,
+            None,
             fit_window,
-            fit_width,
-            None,
-            toggle_auto_labeling_widget,
-            run_all_images,
-            None,
-            show_masks,
-            show_texts,
-            show_labels,
-            show_scores,
-            show_degrees,
-            show_attributes,
-            show_linking,
-            show_groups,
-            group_selected_shapes,
-            ungroup_selected_shapes,
         )
 
         layout = QHBoxLayout()
@@ -2579,7 +2482,7 @@ class LabelingWidget(LabelDialog):
         # self.auto_labeling_widget.model_manager.request_next_files_requested.connect(
         #     lambda: self.inform_next_files(self.filename)
         # )
-        self.auto_labeling_widget.hide()  # Hide by default
+        self.actions.run_all_images.setEnabled(True)
         instruction_layout = QHBoxLayout()
         instruction_layout.setContentsMargins(0, 0, 0, 0)
         instruction_layout.setSpacing(2)
@@ -2589,8 +2492,12 @@ class LabelingWidget(LabelDialog):
         self.sidebar_toggle_button.setIcon(
             get_icon("panel-right", theme["text"], theme["primary"])
         )
-        self.sidebar_toggle_button.setIconSize(QtCore.QSize(18, 18))
-        self.sidebar_toggle_button.setFixedSize(26, 26)
+        self.sidebar_toggle_button.setIconSize(
+            QtCore.QSize(TOOL_ICON_SIZE, TOOL_ICON_SIZE)
+        )
+        self.sidebar_toggle_button.setFixedSize(
+            TOOL_BUTTON_SIZE, TOOL_BUTTON_SIZE
+        )
         self.sidebar_toggle_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.sidebar_toggle_button.setToolTip(self.tr("Toggle right panel"))
         self.sidebar_toggle_button.setAccessibleName(
@@ -2614,27 +2521,14 @@ class LabelingWidget(LabelDialog):
             }}
         """)
         self.sidebar_toggle_button.clicked.connect(self.toggle_right_sidebar)
-        self.shortcuts_button = QtWidgets.QToolButton()
-        self.shortcuts_button.setIcon(
-            get_icon("command", theme["text"], theme["primary"])
-        )
-        self.shortcuts_button.setIconSize(QtCore.QSize(18, 18))
-        self.shortcuts_button.setFixedSize(26, 26)
-        self.shortcuts_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.shortcuts_button.setToolTip(self.tr("Shortcuts"))
-        self.shortcuts_button.setAccessibleName(
-            self.shortcuts_button.toolTip()
-        )
-        self.shortcuts_button.setStyleSheet(
-            self.sidebar_toggle_button.styleSheet()
-        )
-        self.shortcuts_button.clicked.connect(self.show_shortcuts)
         self.update_button = QtWidgets.QToolButton()
         self.update_button.setIcon(
             get_icon("circle-arrow-up", theme["primary"], theme["primary"])
         )
-        self.update_button.setIconSize(QtCore.QSize(18, 18))
-        self.update_button.setFixedSize(26, 26)
+        self.update_button.setIconSize(
+            QtCore.QSize(TOOL_ICON_SIZE, TOOL_ICON_SIZE)
+        )
+        self.update_button.setFixedSize(TOOL_BUTTON_SIZE, TOOL_BUTTON_SIZE)
         self.update_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.update_button.setToolTip(self.tr("Update available"))
         self.update_button.setAccessibleName(self.tr("Update available"))
@@ -2646,7 +2540,6 @@ class LabelingWidget(LabelDialog):
         utility_actions = []
         for button in (
             self.settings_button,
-            self.shortcuts_button,
             self.sidebar_toggle_button,
         ):
             button.setStyleSheet("")
@@ -2675,13 +2568,10 @@ class LabelingWidget(LabelDialog):
         self.display_mode_group.triggered.connect(
             lambda selected: self.canvas.set_display_mode(selected.data())
         )
+        utils.add_actions(self.menus.view, (None, *display_actions))
         self.actions.tool += (
             None,
-            *display_actions,
-            None,
-            *utility_actions[:2],
-            show_image_tags,
-            *utility_actions[2:],
+            *utility_actions,
         )
         central_layout.addLayout(instruction_layout)
         central_layout.addWidget(self.auto_labeling_widget)
@@ -3153,6 +3043,11 @@ class LabelingWidget(LabelDialog):
         if self._config["language"] == language:
             return
         self._config["language"] = language
+        # Persist now: closing below can be cancelled by the user, and the
+        # choice must still be the default on the next launch.
+        save_config(self._config)
+        if self.language_button is not None:
+            self.language_button.setText(SUPPORTED_LANGUAGES[language])
 
         # Show dialog to restart application
         msg_box = QMessageBox()
@@ -3161,6 +3056,31 @@ class LabelingWidget(LabelDialog):
         )
         msg_box.exec()
         self.parent.parent.close()
+
+    def install_language_button(self):
+        """Add the language picker to the top-right of the menu bar."""
+        button = QtWidgets.QToolButton(self)
+        button.setObjectName("languageButton")
+        button.setIcon(utils.new_icon("globe"))
+        button.setText(
+            SUPPORTED_LANGUAGES.get(
+                self._config["language"], self._config["language"]
+            )
+        )
+        button.setToolTip(self.tr("Language"))
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        button.setPopupMode(
+            QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup
+        )
+        button.setMenu(self.menus.language)
+        self.language_button = button
+        menu_bar = self.parent.parent.menuBar()
+        if menu_bar.isNativeMenuBar():
+            # Native menu bars (macOS, some Linux desktops) ignore corner
+            # widgets, so fall back to the status bar.
+            self.statusBar().addPermanentWidget(button)
+        else:
+            menu_bar.setCornerWidget(button, Qt.Corner.TopRightCorner)
 
     def _on_theme_changed(self, mode: str) -> None:
         """Handle Theme menu selection (System / Light / Dark)."""
@@ -3335,8 +3255,8 @@ class LabelingWidget(LabelDialog):
         toolbar.setObjectName(f"{title}ToolBar")
         toolbar.setOrientation(Qt.Orientation.Horizontal)
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        toolbar.setIconSize(QtCore.QSize(18, 18))
-        toolbar.setFixedHeight(26)
+        toolbar.setIconSize(QtCore.QSize(TOOL_ICON_SIZE, TOOL_ICON_SIZE))
+        toolbar.setFixedHeight(TOOL_BUTTON_SIZE)
         toolbar.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
             QtWidgets.QSizePolicy.Policy.Fixed,
@@ -3400,14 +3320,6 @@ class LabelingWidget(LabelDialog):
             self.actions.create_mode,
             self.actions.create_brush_polygon_mode,
             self.actions.create_magic_wand_mode,
-            self.actions.create_rectangle_mode,
-            self.actions.create_cuboid_mode,
-            self.actions.create_rotation_mode,
-            self.actions.create_quadrilateral_mode,
-            self.actions.create_circle_mode,
-            self.actions.create_line_mode,
-            self.actions.create_point_mode,
-            self.actions.create_line_strip_mode,
             None,
             self.actions.edit_mode,
             self.actions.edit_brush_mode,
@@ -3921,7 +3833,8 @@ class LabelingWidget(LabelDialog):
             self.training_dialog.activateWindow()
         except Exception as e:
             self.error_message(
-                "Start Error", f"Failed to start training dialog: {str(e)}"
+                self.tr("Start Error"),
+                self.tr("Failed to start training dialog: %s") % e,
             )
 
     def on_training_dialog_destroyed(self, _dialog=None):
@@ -4270,7 +4183,9 @@ class LabelingWidget(LabelDialog):
         label = data.get("label", "object")
         create_mode = data.get("mode", None)
 
-        if create_mode not in Shape.get_supported_shape():
+        # Digit shortcuts saved before the app became polygon-only may still
+        # name another shape type.
+        if create_mode != "polygon":
             return
 
         self.digit_to_label = label
@@ -7631,8 +7546,10 @@ class LabelingWidget(LabelDialog):
     def has_labels(self):
         if self.no_shape():
             self.error_message(
-                "No objects labeled",
-                "You must label at least one object to save the file.",
+                self.tr("No objects labeled"),
+                self.tr(
+                    "You must label at least one object to save the file."
+                ),
             )
             return False
         return True
@@ -7649,8 +7566,8 @@ class LabelingWidget(LabelDialog):
         if not self.dirty:
             return True
         mb = QtWidgets.QMessageBox
-        msg = self.tr(
-            f'Save annotations to "{self.filename!r}" before closing?'
+        msg = self.tr('Save annotations to "%s" before closing?') % repr(
+            self.filename
         )
         answer = mb.question(
             self,

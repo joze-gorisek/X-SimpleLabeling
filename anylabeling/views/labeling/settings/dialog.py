@@ -980,7 +980,7 @@ class SettingsDialog(QtWidgets.QDialog):
         group = QtWidgets.QButtonGroup(container)
         radio_buttons: dict[str, QtWidgets.QRadioButton] = {}
         for option in field.options:
-            radio = QtWidgets.QRadioButton(str(option), container)
+            radio = QtWidgets.QRadioButton(self.tr(str(option)), container)
             radio.setStyleSheet(self._radio_style())
             radio.toggled.connect(
                 lambda checked, value=option, f=field: self._on_model_hub_toggled(
@@ -1011,7 +1011,7 @@ class SettingsDialog(QtWidgets.QDialog):
         editor.setStyleSheet(self._combo_style())
         self._register_wheel_block(editor)
         for option in field.options:
-            editor.addItem(str(option), option)
+            editor.addItem(self.tr(str(option)), option)
         self._prepare_combo_popup(editor)
         editor.currentIndexChanged.connect(
             lambda _index, f=field, w=editor: self._on_editor_value_changed(
@@ -1045,7 +1045,9 @@ class SettingsDialog(QtWidgets.QDialog):
             layout.setSpacing(14)
             radio_buttons: dict[str, QtWidgets.QRadioButton] = {}
             for option in field.options:
-                text = self.tr("None") if option is None else str(option)
+                text = (
+                    self.tr("None") if option is None else self.tr(str(option))
+                )
                 radio = QtWidgets.QRadioButton(text, container)
                 radio.setStyleSheet(self._radio_style())
                 radio.toggled.connect(
@@ -1071,7 +1073,7 @@ class SettingsDialog(QtWidgets.QDialog):
         editor.setStyleSheet(self._combo_style())
         self._register_wheel_block(editor)
         for option in field.options:
-            text = self.tr("None") if option is None else str(option)
+            text = self.tr("None") if option is None else self.tr(str(option))
             if field.key == "canvas.wheel_navigation_mode":
                 text = {
                     "direct": self.tr("Direct Zoom"),
@@ -1355,7 +1357,11 @@ class SettingsDialog(QtWidgets.QDialog):
     def _display_field_title(
         self, field: SettingField, strip_prefix: str | None
     ) -> str:
-        return field.label
+        # Other catalogs keep these titles in English by design.
+        language = QtCore.QCoreApplication.instance().property(
+            "xanylabeling_language"
+        )
+        return self.tr(field.label) if language == "sl_SI" else field.label
 
     def _shortcut_usage_hint(self, key: str) -> str | None:
         # Concise usage hints for AI shortcut bindings.

@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 import json
 import jsonlines
 import os
@@ -150,7 +152,7 @@ def upload_vlm_r1_ovd_annotation(self):
     if not _check_filename_exist(self):
         return
 
-    filter = "Attribute Files (*.jsonl);;All Files (*)"
+    filter = self.tr("Attribute Files (*.jsonl);;All Files (*)")
     input_file, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a custom vlm_r1_ovd annotation file"),
@@ -238,7 +240,7 @@ def upload_vlm_r1_ovd_annotation(self):
 
     except Exception as e:
         progress_dialog.close()
-        message = f"Error occurred while uploading annotations: {str(e)}"
+        message = self.tr("Error occurred while uploading annotations: %s") % e
         logger.error(message)
 
         popup = Popup(
@@ -254,7 +256,7 @@ def upload_ppocr_annotation(self, mode):
         return
 
     if mode == "rec":
-        filter = "Attribute Files (*.txt);;All Files (*)"
+        filter = self.tr("Attribute Files (*.txt);;All Files (*)")
         input_file, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             self.tr("Select a custom annotation file (Label.txt)"),
@@ -266,7 +268,7 @@ def upload_ppocr_annotation(self, mode):
             return
 
     elif mode == "kie":
-        filter = "Attribute Files (*.json);;All Files (*)"
+        filter = self.tr("Attribute Files (*.json);;All Files (*)")
         input_file, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             self.tr("Select a custom annotation file (ppocr_kie.json)"),
@@ -327,7 +329,8 @@ def upload_ppocr_annotation(self, mode):
             popup.show_popup(self, popup_height=65, position="center")
         else:
             message = (
-                f"Error occurred while uploading annotations: {str(error_msg)}"
+                self.tr("Error occurred while uploading annotations: %s")
+                % error_msg
             )
             logger.error(message)
             popup = Popup(
@@ -349,7 +352,7 @@ def upload_odvg_annotation(self):
     if not _check_filename_exist(self):
         return
 
-    filter = "OD Files (*.json *.jsonl);;All Files (*)"
+    filter = self.tr("OD Files (*.json *.jsonl);;All Files (*)")
     input_file, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific OD file"),
@@ -407,7 +410,8 @@ def upload_odvg_annotation(self):
             popup.show_popup(self, popup_height=65, position="center")
         else:
             message = (
-                f"Error occurred while uploading annotations: {str(error_msg)}"
+                self.tr("Error occurred while uploading annotations: %s")
+                % error_msg
             )
             logger.error(message)
             popup = Popup(
@@ -429,7 +433,7 @@ def upload_mmgd_annotation(self, LABEL_OPACITY):
     if not _check_filename_exist(self):
         return
 
-    filter = "Classes Files (*.txt);;All Files (*)"
+    filter = self.tr("Classes Files (*.txt);;All Files (*)")
     classes_file, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific classes file"),
@@ -668,7 +672,7 @@ def upload_mmgd_annotation(self, LABEL_OPACITY):
 
     except Exception as e:
         progress_dialog.close()
-        message = f"Error occurred while uploading annotations: {str(e)}"
+        message = self.tr("Error occurred while uploading annotations: %s") % e
         logger.error(message)
 
         popup = Popup(
@@ -683,7 +687,7 @@ def upload_mot_annotation(self, LABEL_OPACITY):
     if not _check_filename_exist(self):
         return
 
-    filter = "Classes Files (*.txt);;All Files (*)"
+    filter = self.tr("Classes Files (*.txt);;All Files (*)")
     classes_file, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific classes file"),
@@ -694,7 +698,7 @@ def upload_mot_annotation(self, LABEL_OPACITY):
     if not classes_file:
         return
 
-    filter = "Gt Files (*.txt);;All Files (*)"
+    filter = self.tr("Gt Files (*.txt);;All Files (*)")
     gt_file, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific gt file"),
@@ -773,7 +777,8 @@ def upload_mot_annotation(self, LABEL_OPACITY):
             popup.show_popup(self, popup_height=65, position="center")
         else:
             message = (
-                f"Error occurred while uploading annotations: {str(error_msg)}"
+                self.tr("Error occurred while uploading annotations: %s")
+                % error_msg
             )
             logger.error(message)
             popup = Popup(
@@ -795,7 +800,7 @@ def upload_mask_annotation(self, LABEL_OPACITY):
     if not _check_filename_exist(self):
         return
 
-    filter = "Attribute Files (*.json);;All Files (*)"
+    filter = self.tr("Attribute Files (*.json);;All Files (*)")
     color_map_file, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific color_map file"),
@@ -962,7 +967,7 @@ def upload_mask_annotation(self, LABEL_OPACITY):
 
     except Exception as e:
         progress_dialog.close()
-        message = f"Error occurred while uploading annotations: {str(e)}"
+        message = self.tr("Error occurred while uploading annotations: %s") % e
         logger.error(message)
 
         popup = Popup(
@@ -1118,7 +1123,7 @@ def upload_dota_annotation(self):
 
     except Exception as e:
         progress_dialog.close()
-        message = f"Error occurred while uploading annotations: {str(e)}"
+        message = self.tr("Error occurred while uploading annotations: %s") % e
         logger.error(message)
 
         popup = Popup(
@@ -1133,7 +1138,7 @@ def upload_coco_annotation(self, mode):
     if not _check_filename_exist(self):
         return
 
-    filter = "Attribute Files (*.json);;All Files (*)"
+    filter = self.tr("Attribute Files (*.json);;All Files (*)")
     input_file, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a custom coco annotation file"),
@@ -1193,7 +1198,8 @@ def upload_coco_annotation(self, mode):
             popup.show_popup(self, popup_height=65, position="center")
         else:
             message = (
-                f"Error occurred while uploading annotations: {str(error_msg)}"
+                self.tr("Error occurred while uploading annotations: %s")
+                % error_msg
             )
             logger.error(message)
             popup = Popup(
@@ -1354,7 +1360,7 @@ def upload_voc_annotation(self, mode):
 
     except Exception as e:
         progress_dialog.close()
-        message = f"Error occurred while uploading annotations: {str(e)}"
+        message = self.tr("Error occurred while uploading annotations: %s") % e
         logger.error(message)
 
         popup = Popup(
@@ -1370,7 +1376,7 @@ def upload_yolo_annotation(self, mode, LABEL_OPACITY):
         return
 
     if mode == "pose":
-        filter = "Classes Files (*.yaml);;All Files (*)"
+        filter = self.tr("Classes Files (*.yaml);;All Files (*)")
         self.yaml_file, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             self.tr("Select a specific yolo-pose config file"),
@@ -1398,7 +1404,7 @@ def upload_yolo_annotation(self, mode, LABEL_OPACITY):
             labels.extend(keypoint_name)
 
     elif mode in ["hbb", "obb", "seg"]:
-        filter = "Classes Files (*.txt);;All Files (*)"
+        filter = self.tr("Classes Files (*.txt);;All Files (*)")
         self.classes_file, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             self.tr("Select a specific classes file"),
@@ -1604,7 +1610,7 @@ def upload_yolo_annotation(self, mode, LABEL_OPACITY):
 
     except Exception as e:
         progress_dialog.close()
-        message = f"Error occurred while uploading annotations: {str(e)}"
+        message = self.tr("Error occurred while uploading annotations: %s") % e
         logger.error(message)
 
         popup = Popup(
@@ -1616,7 +1622,7 @@ def upload_yolo_annotation(self, mode, LABEL_OPACITY):
 
 
 def upload_label_classes_file(self):
-    filter = "Label Files (*.txt);;All Files (*)"
+    filter = self.tr("Label Files (*.txt);;All Files (*)")
     file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific label classes file"),
@@ -1676,7 +1682,8 @@ def upload_label_classes_file(self):
 
     except Exception as e:
         message = (
-            f"Error occurred while uploading label classes file: {str(e)}"
+            self.tr("Error occurred while uploading label classes file: %s")
+            % e
         )
         logger.error(message)
 
@@ -1704,11 +1711,16 @@ def validate_shape_attributes_config(attributes_data):
 
     def invalid(label, property_name, widget_type, value, expected):
         raise ValueError(
-            "Invalid shape attribute configuration: "
-            f"label={label!r}, property={property_name!r}, "
-            f"widget_type={widget_type!r}, "
-            f"actual_type={type(value).__name__!r}, "
-            f"expected={expected!r}"
+            QCoreApplication.translate(
+                "Messages",
+                "Invalid shape attribute configuration: label={0!r}, property={1!r}, widget_type={2!r}, actual_type={3!r}, expected={4!r}",
+            ).format(
+                label,
+                property_name,
+                widget_type,
+                type(value).__name__,
+                expected,
+            )
         )
 
     if not isinstance(attributes_data, dict):
@@ -1717,7 +1729,7 @@ def validate_shape_attributes_config(attributes_data):
             "<root>",
             "<none>",
             attributes_data,
-            "a dictionary",
+            QCoreApplication.translate("Messages", "a dictionary"),
         )
 
     attributes = {
@@ -1732,7 +1744,9 @@ def validate_shape_attributes_config(attributes_data):
                 "<all>",
                 "<unknown>",
                 properties,
-                "a dictionary of attribute definitions",
+                QCoreApplication.translate(
+                    "Messages", "a dictionary of attribute definitions"
+                ),
             )
 
     widget_types = attributes_data.get("__widget_types__", {})
@@ -1742,7 +1756,9 @@ def validate_shape_attributes_config(attributes_data):
             "<all>",
             "<mapping>",
             widget_types,
-            "a dictionary of label widget mappings",
+            QCoreApplication.translate(
+                "Messages", "a dictionary of label widget mappings"
+            ),
         )
 
     supported_widget_types = {
@@ -1758,7 +1774,9 @@ def validate_shape_attributes_config(attributes_data):
                 "<all>",
                 "<mapping>",
                 None,
-                "an existing attribute label",
+                QCoreApplication.translate(
+                    "Messages", "an existing attribute label"
+                ),
             )
         if not isinstance(property_types, dict):
             invalid(
@@ -1766,7 +1784,9 @@ def validate_shape_attributes_config(attributes_data):
                 "<all>",
                 "<mapping>",
                 property_types,
-                "a dictionary of property widget types",
+                QCoreApplication.translate(
+                    "Messages", "a dictionary of property widget types"
+                ),
             )
         for property_name, widget_type in property_types.items():
             if property_name not in attributes[label]:
@@ -1775,7 +1795,9 @@ def validate_shape_attributes_config(attributes_data):
                     property_name,
                     widget_type,
                     None,
-                    "an existing attribute property",
+                    QCoreApplication.translate(
+                        "Messages", "an existing attribute property"
+                    ),
                 )
             if (
                 not isinstance(widget_type, str)
@@ -1786,7 +1808,10 @@ def validate_shape_attributes_config(attributes_data):
                     property_name,
                     widget_type,
                     widget_type,
-                    "one of combobox, radiobutton, group_id, or lineedit",
+                    QCoreApplication.translate(
+                        "Messages",
+                        "one of combobox, radiobutton, group_id, or lineedit",
+                    ),
                 )
 
     for label, properties in attributes.items():
@@ -1804,7 +1829,9 @@ def validate_shape_attributes_config(attributes_data):
                         property_name,
                         widget_type,
                         value,
-                        "a non-empty list of strings",
+                        QCoreApplication.translate(
+                            "Messages", "a non-empty list of strings"
+                        ),
                     )
             elif widget_type == "lineedit" and not isinstance(value, str):
                 invalid(
@@ -1812,7 +1839,7 @@ def validate_shape_attributes_config(attributes_data):
                     property_name,
                     widget_type,
                     value,
-                    "a string",
+                    QCoreApplication.translate("Messages", "a string"),
                 )
             elif widget_type == "group_id" and value != []:
                 invalid(
@@ -1820,14 +1847,14 @@ def validate_shape_attributes_config(attributes_data):
                     property_name,
                     widget_type,
                     value,
-                    "an empty list",
+                    QCoreApplication.translate("Messages", "an empty list"),
                 )
 
     return attributes, widget_types
 
 
 def upload_shape_attrs_file(self, LABEL_OPACITY):
-    filter = "Shape Attributes Files (*.json);;All Files (*)"
+    filter = self.tr("Shape Attributes Files (*.json);;All Files (*)")
     file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific shape attributes file"),
@@ -1866,7 +1893,8 @@ def upload_shape_attrs_file(self, LABEL_OPACITY):
 
     except Exception as e:
         message = (
-            f"Error occurred while uploading shape attributes file: {str(e)}"
+            self.tr("Error occurred while uploading shape attributes file: %s")
+            % e
         )
         logger.error(message)
 
@@ -1879,7 +1907,7 @@ def upload_shape_attrs_file(self, LABEL_OPACITY):
 
 
 def upload_label_flags_file(self, LABEL_OPACITY):
-    filter = "Label Flags Files (*.yaml);;All Files (*)"
+    filter = self.tr("Label Flags Files (*.yaml);;All Files (*)")
     file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific flags file"),
@@ -1913,7 +1941,7 @@ def upload_label_flags_file(self, LABEL_OPACITY):
         popup.show_popup(self, popup_height=65, position="center")
 
     except Exception as e:
-        message = f"Error occurred while uploading flags file: {str(e)}"
+        message = self.tr("Error occurred while uploading flags file: %s") % e
         logger.error(message)
 
         popup = Popup(
@@ -1925,7 +1953,7 @@ def upload_label_flags_file(self, LABEL_OPACITY):
 
 
 def upload_image_flags_file(self):
-    filter = "Image Flags Files (*.txt);;All Files (*)"
+    filter = self.tr("Image Flags Files (*.txt);;All Files (*)")
     file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
         self.tr("Select a specific flags file"),
@@ -1952,7 +1980,7 @@ def upload_image_flags_file(self):
         popup.show_popup(self, popup_height=65, position="center")
 
     except Exception as e:
-        message = f"Error occurred while uploading flags file: {str(e)}"
+        message = self.tr("Error occurred while uploading flags file: %s") % e
         logger.error(message)
         popup = Popup(
             message,

@@ -198,7 +198,10 @@ class CreateTaskDialog(QtWidgets.QDialog):
         tasks = QtWidgets.QHBoxLayout()
         tasks.setSpacing(10)
         self.task_buttons = {}
-        for task, title in (("detection", "Det"), ("segmentation", "Seg")):
+        for task, title in (
+            ("detection", self.tr("Det")),
+            ("segmentation", self.tr("Seg")),
+        ):
             button = QtWidgets.QRadioButton(title)
             button.setChecked(task == self.task)
             button.toggled.connect(

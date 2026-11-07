@@ -78,7 +78,7 @@ class FrameExtractionDialog(QDialog):
                 min-height: 28px;
             }
             """)
-        self.prefix_edit.setText("frame_")
+        self.prefix_edit.setText(self.tr("frame_"))
         prefix_layout.addWidget(prefix_label)
         prefix_layout.addWidget(self.prefix_edit)
         prefix_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
@@ -189,7 +189,8 @@ def extract_frames_from_video(self, input_file, out_dir):
 
         if not opened_successfully:
             popup = Popup(
-                f"Failed to open video file: {osp.basename(input_file)}",
+                self.tr("Failed to open video file: %s")
+                % osp.basename(input_file),
                 self,
                 icon=new_icon_path("warning", "svg"),
             )
@@ -352,9 +353,8 @@ def extract_frames_from_video(self, input_file, out_dir):
                                     f"ffmpeg extracted approximately {saved_frame_count} frames to {out_dir}"
                                 )
                                 progress_dialog.setLabelText(
-                                    self.tr(
-                                        f"Completed! Extracted {saved_frame_count} frames."
-                                    )
+                                    self.tr("Completed! Extracted %d frames.")
+                                    % saved_frame_count
                                 )
                                 QApplication.processEvents()
                                 time.sleep(0.3)
@@ -492,7 +492,8 @@ def extract_frames_from_video(self, input_file, out_dir):
                 f"An unexpected error occurred during frame extraction logic: {extraction_e}"
             )
             popup = Popup(
-                f"An unexpected error occurred during extraction: {extraction_e}",
+                self.tr("An unexpected error occurred during extraction: %s")
+                % extraction_e,
                 self,
                 icon=new_icon_path("warning", "svg"),
             )
@@ -506,7 +507,7 @@ def extract_frames_from_video(self, input_file, out_dir):
         )
         # Use Popup instead of QMessageBox
         popup = Popup(
-            f"An error occurred during setup: {opening_e}",
+            self.tr("An error occurred during setup: %s") % opening_e,
             self,
             icon=new_icon_path("error", "svg"),
         )
@@ -536,7 +537,9 @@ def open_video_file(self):
     if not self.may_continue():
         return
 
-    file_filter = "Video Files (*.asf *.avi *.m4v *.mkv *.mov *.mp4 *.mpeg *.mpg *.ts *.wmv);;All Files (*)"
+    file_filter = self.tr(
+        "Video Files (*.asf *.avi *.m4v *.mkv *.mov *.mp4 *.mpeg *.mpg *.ts *.wmv);;All Files (*)"
+    )
     input_file, _ = QFileDialog.getOpenFileName(
         self,
         self.tr("Open Video file"),
@@ -584,7 +587,7 @@ def open_video_file(self):
         except OSError as e:
             logger.error(f"Failed to remove directory {out_dir}: {e}")
             popup = Popup(
-                f"Failed to remove existing directory: {e}",
+                self.tr("Failed to remove existing directory: %s") % e,
                 self,
                 icon=new_icon_path("error", "svg"),
             )

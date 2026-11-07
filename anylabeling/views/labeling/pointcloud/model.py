@@ -1,3 +1,5 @@
+from PyQt6.QtCore import QCoreApplication
+
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -12,22 +14,38 @@ def _validate_id(value, allow_zero=True):
     if isinstance(value, (bool, np.bool_)) or not isinstance(
         value, (int, np.integer)
     ):
-        raise ValueError("IDs must be integers.")
+        raise ValueError(
+            QCoreApplication.translate("Messages", "IDs must be integers.")
+        )
     if not (0 if allow_zero else 1) <= value <= MAX_ID:
-        raise ValueError("ID is outside the supported 16-bit range.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "ID is outside the supported 16-bit range."
+            )
+        )
     return int(value)
 
 
 def validate_labels(labels, count=None):
     labels = np.asarray(labels)
     if labels.ndim != 1 or labels.dtype.kind not in "iu":
-        raise ValueError("Labels must be a one-dimensional integer array.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Labels must be a one-dimensional integer array."
+            )
+        )
     if count is not None and labels.size != count:
         raise ValueError(
-            f"Point count {count} does not match label count {labels.size}."
+            QCoreApplication.translate(
+                "Messages", "Point count {0} does not match label count {1}."
+            ).format(count, labels.size)
         )
     if labels.size and (labels.min() < 0 or labels.max() > 0xFFFFFFFF):
-        raise ValueError("Labels must fit unsigned 32-bit integers.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "Labels must fit unsigned 32-bit integers."
+            )
+        )
     return np.ascontiguousarray(labels, dtype=np.uint32)
 
 
@@ -55,13 +73,26 @@ class Frame:
             or self.points.shape[1] != 4
             or not len(self.points)
         ):
-            raise ValueError("A frame requires a nonempty N x 4 point array.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages",
+                    "A frame requires a nonempty N x 4 point array.",
+                )
+            )
         if not np.isfinite(self.points[:, :3]).all():
-            raise ValueError(f"{self.path}: point coordinates must be finite.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "{0}: point coordinates must be finite."
+                ).format(self.path)
+            )
         if self.rgb is not None:
             rgb = np.asarray(self.rgb)
             if rgb.shape != (len(self.points), 3) or rgb.dtype != np.uint8:
-                raise ValueError("RGB colors must be an N x 3 uint8 array.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "RGB colors must be an N x 3 uint8 array."
+                    )
+                )
             self.rgb = np.ascontiguousarray(rgb)
             self.rgb.flags.writeable = False
         self.points.flags.writeable = False
@@ -94,7 +125,11 @@ class _CuboidEdit:
 class AnnotationDocument:
     def __init__(self, frame, history_limit=50):
         if history_limit < 20:
-            raise ValueError("History must retain at least 20 operations.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "History must retain at least 20 operations."
+                )
+            )
         self.frame = frame
         self._labels = frame.labels.copy()
         self.frame.labels = self.labels
@@ -175,17 +210,29 @@ class AnnotationDocument:
         for value in range(1, MAX_ID + 1):
             if value not in used:
                 return value
-        raise ValueError("No cuboid IDs remain in this frame.")
+        raise ValueError(
+            QCoreApplication.translate(
+                "Messages", "No cuboid IDs remain in this frame."
+            )
+        )
 
     def set_cuboid(self, cuboid):
         if not isinstance(cuboid, Cuboid):
-            raise ValueError("Expected a cuboid annotation.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Expected a cuboid annotation."
+                )
+            )
         existing = next(
             (box for box in self._cuboids if box.id == cuboid.id), None
         )
         if existing is not None and existing.locked and cuboid != existing:
             if replace(cuboid, locked=True) != existing:
-                raise ValueError("Unlock the cuboid before editing it.")
+                raise ValueError(
+                    QCoreApplication.translate(
+                        "Messages", "Unlock the cuboid before editing it."
+                    )
+                )
         boxes = tuple(
             cuboid if box.id == cuboid.id else box for box in self._cuboids
         )
@@ -199,7 +246,11 @@ class AnnotationDocument:
     def delete_cuboids(self, cuboid_ids):
         ids = set(cuboid_ids)
         if any(box.id in ids and box.locked for box in self._cuboids):
-            raise ValueError("Unlock the cuboid before deleting it.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unlock the cuboid before deleting it."
+                )
+            )
         return self._commit_cuboids(
             tuple(box for box in self._cuboids if box.id not in ids)
         )
@@ -239,19 +290,35 @@ class AnnotationDocument:
     def _indices(self, indices):
         indices = np.asarray(indices)
         if indices.ndim != 1:
-            raise ValueError("Point indices must be a one-dimensional array.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages",
+                    "Point indices must be a one-dimensional array.",
+                )
+            )
         if indices.dtype.kind == "b":
             if len(indices) != len(self._labels):
                 raise ValueError(
-                    "Point mask must match the frame point count."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Point mask must match the frame point count.",
+                    )
                 )
             return np.flatnonzero(indices)
         if not indices.size:
             return np.empty(0, dtype=np.int32)
         if indices.dtype.kind not in "iu":
-            raise ValueError("Point indices must be integers.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Point indices must be integers."
+                )
+            )
         if indices.min() < 0 or indices.max() >= len(self._labels):
-            raise ValueError("Point index is outside the current frame.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Point index is outside the current frame."
+                )
+            )
         dtype = np.int32 if len(self._labels) <= 0x7FFFFFFF else np.int64
         return np.unique(indices).astype(dtype, copy=False)
 
@@ -301,7 +368,10 @@ class AnnotationDocument:
                 or self._locked_labels(values).any()
             ):
                 raise ValueError(
-                    "Unlock the class or instance before editing its points."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Unlock the class or instance before editing its points.",
+                    )
                 )
         edit = _Edit(indices, self._labels[indices].copy(), values)
         self._write(indices, values)
@@ -343,7 +413,10 @@ class AnnotationDocument:
     def _key(self, key, require_existing=True):
         if not isinstance(key, (tuple, list)) or len(key) != 2:
             raise ValueError(
-                "An instance requires a semantic and instance ID."
+                QCoreApplication.translate(
+                    "Messages",
+                    "An instance requires a semantic and instance ID.",
+                )
             )
         semantic_id = _validate_id(key[0])
         instance_id = _validate_id(key[1], allow_zero=False)
@@ -352,7 +425,11 @@ class AnnotationDocument:
             require_existing
             and (semantic_id, instance_id) not in self._instance_counts
         ):
-            raise ValueError("The selected instance no longer exists.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "The selected instance no longer exists."
+                )
+            )
         return semantic_id, instance_id, packed
 
     def _allocate_instance(self, semantic_id):
@@ -365,7 +442,10 @@ class AnnotationDocument:
         free = np.flatnonzero(~used)
         if not free.size:
             raise ValueError(
-                "No instance IDs remain for this class (range 1-65535)."
+                QCoreApplication.translate(
+                    "Messages",
+                    "No instance IDs remain for this class (range 1-65535).",
+                )
             )
         return int(free[0])
 
@@ -376,7 +456,12 @@ class AnnotationDocument:
             (self._labels[indices] & np.uint32(MAX_ID)) == semantic_id
         ]
         if not indices.size:
-            raise ValueError("Select at least one point of the target class.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages",
+                    "Select at least one point of the target class.",
+                )
+            )
         instance_id = self._allocate_instance(semantic_id)
         self._commit(indices, (instance_id << 16) | semantic_id)
         return semantic_id, instance_id
@@ -384,7 +469,11 @@ class AnnotationDocument:
     def add_to_instance(self, indices, key):
         semantic_id, _, packed = self._key(key)
         if semantic_id == 0:
-            raise ValueError("Unlabeled points cannot acquire an instance.")
+            raise ValueError(
+                QCoreApplication.translate(
+                    "Messages", "Unlabeled points cannot acquire an instance."
+                )
+            )
         indices = self._indices(indices)
         indices = indices[
             (self._labels[indices] & np.uint32(MAX_ID)) == semantic_id
@@ -404,7 +493,10 @@ class AnnotationDocument:
         count = self._instance_counts[(semantic_id, instance_id)]
         if not indices.size or indices.size == count:
             raise ValueError(
-                "Split requires a nonempty proper subset of an instance."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Split requires a nonempty proper subset of an instance.",
+                )
             )
         instance_id = self._allocate_instance(semantic_id)
         self._commit(indices, (instance_id << 16) | semantic_id)
@@ -414,20 +506,29 @@ class AnnotationDocument:
         semantic_id, _, target = self._key(target_key)
         if semantic_id == 0:
             raise ValueError(
-                "Unlabeled instances must be cleared or assigned a class."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Unlabeled instances must be cleared or assigned a class.",
+                )
             )
         sources = set()
         for key in source_keys:
             source_semantic, _, packed = self._key(key)
             if source_semantic != semantic_id:
                 raise ValueError(
-                    "Only instances of the same class can be merged."
+                    QCoreApplication.translate(
+                        "Messages",
+                        "Only instances of the same class can be merged.",
+                    )
                 )
             if packed != target:
                 sources.add(int(packed))
         if not sources:
             raise ValueError(
-                "Select at least two distinct instances to merge."
+                QCoreApplication.translate(
+                    "Messages",
+                    "Select at least two distinct instances to merge.",
+                )
             )
         indices = np.flatnonzero(np.isin(self._labels, list(sources)))
         return self._commit(indices, target)

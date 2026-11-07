@@ -119,7 +119,9 @@ class AboutDialog(QDialog):
         layout.setSpacing(16)
 
         # App name and version
-        title_label = QLabel(f"<b>X-AnyLabeling</b> v{__version__}")
+        title_label = QLabel(
+            self.tr("<b>X-AnyLabeling</b> v{0}").format(__version__)
+        )
         title_label.setStyleSheet("font-size: 16px;")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
@@ -225,7 +227,7 @@ class AboutDialog(QDialog):
 
         # Copyright
         copyright_label = QLabel(
-            "Copyright © 2023–2026 CVHub. All rights reserved."
+            self.tr("Copyright © 2023–2026 CVHub. All rights reserved.")
         )
         copyright_label.setStyleSheet(
             f"color: {t['text_secondary']}; font-size: 12px;"
@@ -251,27 +253,26 @@ class AboutDialog(QDialog):
     def copy_app_info(self):
         """Copy app info to clipboard (non-blocking)"""
 
+        fallback_info = self.tr(
+            "App name: {0}\nApp version: {1}\nDevice: {2}\n"
+        ).format(__appname__, __version__, __preferred_device__)
+
         def _collect_and_copy():
             try:
-                app_info = (
-                    f"App name: {__appname__}\n"
-                    f"App version: {__version__}\n"
-                    f"Device: {__preferred_device__}\n"
-                )
+                app_info = fallback_info
                 system_info, pkg_info = collect_system_info()
                 system_info_str = "\n".join(
-                    [f"{key}: {value}" for key, value in system_info.items()]
+                    [
+                        f"{self.tr(key)}: {value}"
+                        for key, value in system_info.items()
+                    ]
                 )
                 pkg_info_str = "\n".join(
                     [f"{key}: {value}" for key, value in pkg_info.items()]
                 )
                 msg = f"{app_info}\n{system_info_str}\n\n{pkg_info_str}"
             except Exception:
-                msg = (
-                    f"App name: {__appname__}\n"
-                    f"App version: {__version__}\n"
-                    f"Device: {__preferred_device__}\n"
-                )
+                msg = fallback_info
             self._copy_info_ready.emit(msg)
 
         thread = threading.Thread(target=_collect_and_copy, daemon=True)

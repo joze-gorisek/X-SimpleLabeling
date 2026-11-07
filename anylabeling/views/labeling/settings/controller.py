@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from PyQt6.QtCore import QCoreApplication
+
 import copy
 from typing import Any, Callable
 
@@ -8,6 +10,7 @@ from PyQt6 import QtCore, QtGui
 from anylabeling.config import save_config
 
 from .schema import (
+    HIDDEN_SHORTCUT_KEYS,
     SETTING_FIELD_MAP,
     SETTING_FIELDS,
     SHORTCUT_DUPLICATE_WHITELIST,
@@ -209,7 +212,11 @@ class SettingsController(QtCore.QObject):
         try:
             result = self._save_callback(pending_config)
             if result is False:
-                raise RuntimeError("save callback returned False")
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        "Messages", "save callback returned False"
+                    )
+                )
             if self._defer_runtime_apply:
                 self._config.clear()
                 self._config.update(copy.deepcopy(pending_config))
@@ -236,7 +243,9 @@ class SettingsController(QtCore.QObject):
         if control == "bool":
             if not isinstance(value, bool):
                 raise SettingsValidationError(
-                    f"{field.label} requires a boolean value"
+                    QCoreApplication.translate(
+                        "Messages", "{0} requires a boolean value"
+                    ).format(field.label)
                 )
             return value
 
@@ -247,7 +256,9 @@ class SettingsController(QtCore.QObject):
                 normalized = value
             else:
                 raise SettingsValidationError(
-                    f"{field.label} has unsupported option: {value}"
+                    QCoreApplication.translate(
+                        "Messages", "{0} has unsupported option: {1}"
+                    ).format(field.label, value)
                 )
             if field.key.startswith("shortcuts."):
                 self._validate_shortcut_conflicts(field.key, normalized)
@@ -258,31 +269,43 @@ class SettingsController(QtCore.QObject):
                 return None
             if isinstance(value, bool) or not isinstance(value, int):
                 raise SettingsValidationError(
-                    f"{field.label} requires an integer value"
+                    QCoreApplication.translate(
+                        "Messages", "{0} requires an integer value"
+                    ).format(field.label)
                 )
             if field.minimum is not None and value < field.minimum:
                 raise SettingsValidationError(
-                    f"{field.label} must be >= {field.minimum}"
+                    QCoreApplication.translate(
+                        "Messages", "{0} must be >= {1}"
+                    ).format(field.label, field.minimum)
                 )
             if field.maximum is not None and value > field.maximum:
                 raise SettingsValidationError(
-                    f"{field.label} must be <= {field.maximum}"
+                    QCoreApplication.translate(
+                        "Messages", "{0} must be <= {1}"
+                    ).format(field.label, field.maximum)
                 )
             return value
 
         if control == "float":
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise SettingsValidationError(
-                    f"{field.label} requires a numeric value"
+                    QCoreApplication.translate(
+                        "Messages", "{0} requires a numeric value"
+                    ).format(field.label)
                 )
             numeric = float(value)
             if field.minimum is not None and numeric < field.minimum:
                 raise SettingsValidationError(
-                    f"{field.label} must be >= {field.minimum}"
+                    QCoreApplication.translate(
+                        "Messages", "{0} must be >= {1}"
+                    ).format(field.label, field.minimum)
                 )
             if field.maximum is not None and numeric > field.maximum:
                 raise SettingsValidationError(
-                    f"{field.label} must be <= {field.maximum}"
+                    QCoreApplication.translate(
+                        "Messages", "{0} must be <= {1}"
+                    ).format(field.label, field.maximum)
                 )
             return numeric
 
@@ -291,20 +314,26 @@ class SettingsController(QtCore.QObject):
                 return None
             if not isinstance(value, str):
                 raise SettingsValidationError(
-                    f"{field.label} requires a string value"
+                    QCoreApplication.translate(
+                        "Messages", "{0} requires a string value"
+                    ).format(field.label)
                 )
             normalized = value.strip()
             if field.key == "canvas.crosshair.color":
                 if not normalized:
                     raise SettingsValidationError(
-                        f"{field.label} requires a HEX color value"
+                        QCoreApplication.translate(
+                            "Messages", "{0} requires a HEX color value"
+                        ).format(field.label)
                     )
                 if not normalized.startswith("#"):
                     normalized = f"#{normalized}"
                 color = QtGui.QColor(normalized)
                 if not color.isValid():
                     raise SettingsValidationError(
-                        f"{field.label} requires a valid HEX color"
+                        QCoreApplication.translate(
+                            "Messages", "{0} requires a valid HEX color"
+                        ).format(field.label)
                     )
                 return color.name(QtGui.QColor.NameFormat.HexRgb).upper()
             return normalized
@@ -312,22 +341,30 @@ class SettingsController(QtCore.QObject):
         if control == "color":
             if not isinstance(value, (list, tuple)):
                 raise SettingsValidationError(
-                    f"{field.label} requires a color list"
+                    QCoreApplication.translate(
+                        "Messages", "{0} requires a color list"
+                    ).format(field.label)
                 )
             channels = list(value)
             if len(channels) != field.channels:
                 raise SettingsValidationError(
-                    f"{field.label} requires {field.channels} channels"
+                    QCoreApplication.translate(
+                        "Messages", "{0} requires {1} channels"
+                    ).format(field.label, field.channels)
                 )
             normalized = []
             for channel in channels:
                 if isinstance(channel, bool) or not isinstance(channel, int):
                     raise SettingsValidationError(
-                        f"{field.label} channels must be integers"
+                        QCoreApplication.translate(
+                            "Messages", "{0} channels must be integers"
+                        ).format(field.label)
                     )
                 if channel < 0 or channel > 255:
                     raise SettingsValidationError(
-                        f"{field.label} channels must be in [0, 255]"
+                        QCoreApplication.translate(
+                            "Messages", "{0} channels must be in [0, 255]"
+                        ).format(field.label)
                     )
                 normalized.append(channel)
             return normalized
@@ -335,7 +372,9 @@ class SettingsController(QtCore.QObject):
         if control == "vector2":
             if not isinstance(value, (list, tuple)) or len(value) != 2:
                 raise SettingsValidationError(
-                    f"{field.label} requires two numeric values"
+                    QCoreApplication.translate(
+                        "Messages", "{0} requires two numeric values"
+                    ).format(field.label)
                 )
             result: list[float] = []
             for item in value:
@@ -343,7 +382,9 @@ class SettingsController(QtCore.QObject):
                     item, (int, float)
                 ):
                     raise SettingsValidationError(
-                        f"{field.label} requires two numeric values"
+                        QCoreApplication.translate(
+                            "Messages", "{0} requires two numeric values"
+                        ).format(field.label)
                     )
                 result.append(float(item))
             return result
@@ -363,7 +404,9 @@ class SettingsController(QtCore.QObject):
             return normalized
 
         raise SettingsValidationError(
-            f"Unsupported control type for {field.key}: {control}"
+            QCoreApplication.translate(
+                "Messages", "Unsupported control type for {0}: {1}"
+            ).format(field.key, control)
         )
 
     def _normalize_shortcut_value(self, value: Any) -> str | None:
@@ -379,7 +422,11 @@ class SettingsController(QtCore.QObject):
         )
         sequence = sequence.strip()
         if not sequence:
-            raise SettingsValidationError("Invalid shortcut sequence")
+            raise SettingsValidationError(
+                QtCore.QCoreApplication.translate(
+                    "SettingsDialog", "Invalid shortcut sequence"
+                )
+            )
         return sequence
 
     def _normalize_multi_shortcut_value(self, value: Any) -> list[str]:
@@ -418,6 +465,7 @@ class SettingsController(QtCore.QObject):
             field.key
             for field in SETTING_FIELDS
             if field.primary == "Shortcuts"
+            and field.key not in HIDDEN_SHORTCUT_KEYS
         ]
         sequence_to_keys: dict[str, list[str]] = {}
         for key in shortcut_keys:

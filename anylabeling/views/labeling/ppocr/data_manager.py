@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from PyQt6.QtCore import QCoreApplication
+
 from dataclasses import dataclass
 from datetime import datetime
 import json
@@ -256,7 +258,9 @@ class PPOCRDataManager:
         data = self.load_record_data(record)
         layout_results = data.get("layoutParsingResults") or []
         if not 1 <= page_no <= len(layout_results):
-            raise ValueError("Invalid page index")
+            raise ValueError(
+                QCoreApplication.translate("Messages", "Invalid page index")
+            )
         pruned_result = layout_results[page_no - 1].get("prunedResult") or {}
         block_list = pruned_result.get("parsing_res_list") or []
         matched = False
@@ -274,7 +278,9 @@ class PPOCRDataManager:
                 matched = True
                 break
         if not matched:
-            raise ValueError("Block not found")
+            raise ValueError(
+                QCoreApplication.translate("Messages", "Block not found")
+            )
         meta = data.setdefault("_ppocr_meta", {})
         edited_blocks = set(meta.get("edited_blocks") or [])
         edited_blocks.add(block_key)
@@ -326,14 +332,24 @@ class PPOCRDataManager:
             source_path = Path(raw_path)
             if source_path.is_dir():
                 errors.append(
-                    f"{source_path}: directory import is not supported"
+                    QCoreApplication.translate(
+                        "Messages", "{0}: directory import is not supported"
+                    ).format(source_path)
                 )
                 continue
             if not source_path.is_file():
-                errors.append(f"{source_path}: file does not exist")
+                errors.append(
+                    QCoreApplication.translate(
+                        "Messages", "{0}: file does not exist"
+                    ).format(source_path)
+                )
                 continue
             if source_path.suffix.lower() not in PPOCR_SUPPORTED_SUFFIXES:
-                errors.append(f"{source_path.name}: unsupported file type")
+                errors.append(
+                    QCoreApplication.translate(
+                        "Messages", "{0}: unsupported file type"
+                    ).format(source_path.name)
+                )
                 continue
             is_valid, message = self._validate_basename(source_path.name)
             if not is_valid:
@@ -389,14 +405,22 @@ class PPOCRDataManager:
             if page_paths:
                 return page_paths
         if QPdfDocument is None:
-            raise RuntimeError("QtPdf is not available")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "QtPdf is not available"
+                )
+            )
         if pages_dir.exists():
             shutil.rmtree(pages_dir)
         pages_dir.mkdir(parents=True, exist_ok=True)
         document = QPdfDocument(None)
         error = document.load(str(record.source_path))
         if error != QPdfDocument.Error.None_:
-            raise RuntimeError(f"Failed to load PDF: {record.filename}")
+            raise RuntimeError(
+                QCoreApplication.translate(
+                    "Messages", "Failed to load PDF: {0}"
+                ).format(record.filename)
+            )
         page_paths = []
         for page_index in range(document.pageCount()):
             page_size = document.pagePointSize(page_index)
@@ -405,8 +429,9 @@ class PPOCRDataManager:
             rendered = document.render(page_index, QSize(width, height))
             if rendered.isNull():
                 raise RuntimeError(
-                    f"Failed to render PDF page {page_index + 1}: "
-                    f"{record.filename}"
+                    QCoreApplication.translate(
+                        "Messages", "Failed to render PDF page {0}: {1}"
+                    ).format(page_index + 1, record.filename)
                 )
             page_path = pages_dir / f"page_{page_index + 1:03d}.png"
             rendered.save(str(page_path), "PNG")
