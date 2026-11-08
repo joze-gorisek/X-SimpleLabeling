@@ -18,6 +18,14 @@ import multiprocessing
 import sys
 from pathlib import Path
 
+# Windowed (no-console) builds start with sys.stdout/sys.stderr set to None.
+# Replace them before importing anylabeling modules so the logger's stream
+# handler never binds to None (writing to it would crash the app).
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
+
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import yaml
@@ -82,9 +90,6 @@ def build_startup_banner(colorize):
 
 def main():
     multiprocessing.freeze_support()
-
-    if sys.stderr is None:
-        sys.stderr = open(os.devnull, "w")
 
     parser = argparse.ArgumentParser()
 

@@ -1506,6 +1506,10 @@ class LabelDialog(QtWidgets.QDialog):
         layout_fields.addWidget(self.add_linking_button, 1, 1)
         layout.addLayout(layout_fields)
         layout.addWidget(self.linking_list)
+        # X-SimpleLabeling: KIE linking input and its Add button are hidden.
+        # Remove these lines to show them again.
+        self.linking_input.setHidden(True)
+        self.add_linking_button.setHidden(True)
 
         # buttons
         ok_button = QtWidgets.QPushButton(self.tr("OK"))
@@ -1523,6 +1527,9 @@ class LabelDialog(QtWidgets.QDialog):
         self.edit_description.setPlaceholderText(self.tr("Label description"))
         self.edit_description.setFixedHeight(50)
         layout.addWidget(self.edit_description)
+        # X-SimpleLabeling: label description is hidden (kept for data
+        # compatibility; remove this line to show it again).
+        self.edit_description.setHidden(True)
 
         # difficult & confirm button
         layout_button = QtWidgets.QGridLayout()
@@ -1566,7 +1573,14 @@ class LabelDialog(QtWidgets.QDialog):
             layout_button.addWidget(radio, 0, column)
             layout_button.addWidget(control, 1, column)
             layout_button.setColumnStretch(column, 1)
+            # X-SimpleLabeling: Pending / Missed / False Positive review
+            # radios are hidden; status stays "pending" for new shapes.
+            # Remove this line to show them again.
+            radio.setHidden(True)
         self.review_buttons["pending"].setChecked(True)
+        # X-SimpleLabeling: useDifficult checkbox is hidden; remove this
+        # line to show it again.
+        self.edit_difficult.setHidden(True)
         layout.addLayout(layout_button)
 
         # label_list
@@ -1690,7 +1704,10 @@ class LabelDialog(QtWidgets.QDialog):
             item = QtWidgets.QListWidgetItem(str(linking_pair))
             item.setData(Qt.ItemDataRole.UserRole, linking_pair)
             self.linking_list.addItem(item)
-        self.linking_list.setHidden(False if unique_pairs else True)
+        # X-SimpleLabeling: linking list stays hidden (existing pairs are
+        # still kept and saved). Original line:
+        # self.linking_list.setHidden(False if unique_pairs else True)
+        self.linking_list.setHidden(True)
 
     def get_last_label(self):
         return self._last_label

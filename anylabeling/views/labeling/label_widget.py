@@ -63,6 +63,7 @@ from .settings.schema import (
     load_template_config,
 )
 from .shape import Shape
+from .utils.filename_label import plant_label_from_filename
 from .utils.file_search import (
     parse_search_pattern,
     matches_filename,
@@ -5577,6 +5578,28 @@ class LabelingWidget(LabelDialog):
         if refresh_filters:
             self._refresh_shape_filters()
 
+    def _register_plant_label(self, filename):
+        """Add the image's plant (from <plant>_<field>_<days>_<nnn>_rgb.png)
+        as a label, so each new plant in a folder gets its own label.
+        """
+        plant = plant_label_from_filename(filename)
+        if not plant:
+            return
+        self.load_labels([plant], clear_existing=False)
+        if plant not in self.label_info:
+            self.label_info[plant] = dict(
+                delete=False,
+                value=None,
+                color=list(self._get_rgb_by_label(plant)),
+                opacity=LABEL_OPACITY,
+                visible=True,
+            )
+        self.label_dialog.add_label_history(plant, update_last_label=False)
+        # A label picked on a previous image must not override this
+        # image's plant default.
+        self.unique_label_list.clearSelection()
+        self._refresh_shape_filters()
+
     def load_labels(self, labels, clear_existing=True):
         """
         Load labels to the unique label list widget.
@@ -6127,6 +6150,12 @@ class LabelingWidget(LabelDialog):
         kie_linking = []
         review_status = "pending"
 
+        # Images named <plant>_<field>_<days>_<nnn>_rgb.png default new
+        # polygons to the lowercase plant name.
+        plant_label = None
+        if self.canvas.shapes[-1].shape_type == "polygon":
+            plant_label = plant_label_from_filename(self.filename)
+
         if self.canvas.shapes[-1].label in [
             AutoLabelingMode.ADD,
             AutoLabelingMode.REMOVE,
@@ -6137,7 +6166,9 @@ class LabelingWidget(LabelDialog):
             or not text
             or self.canvas.shapes[-1].label == AutoLabelingMode.OBJECT
         ):
-            last_label = self.find_last_label()
+            if text is None:
+                text = plant_label
+            last_label = plant_label or self.find_last_label()
             last_gid = (
                 self.find_last_gid()
                 if self._config["auto_use_last_gid"]
@@ -6872,6 +6903,7 @@ class LabelingWidget(LabelDialog):
             if self.label_file.flags is not None:
                 flags.update(self.label_file.flags)
         self.load_flags(flags)
+        self._register_plant_label(filename)
 
         # load shapes
         if self._config["keep_prev"] and self.no_shape():
@@ -8011,11 +8043,13 @@ class LabelingWidget(LabelDialog):
 
     def finish_auto_labeling_object(self):
         """Finish auto labeling object."""
-        has_object, cache_label = False, None
+        has_object, cache_label, plant_label = False, None, None
         for shape in self.canvas.shapes:
             if shape.label == AutoLabelingMode.OBJECT:
                 cache_label = shape.cache_label
                 cache_description = shape.cache_description
+                if shape.shape_type == "polygon":
+                    plant_label = plant_label_from_filename(self.filename)
                 has_object = True
                 break
 
@@ -8033,7 +8067,7 @@ class LabelingWidget(LabelDialog):
             False,
             [],
         )
-        last_label = self.find_last_label()
+        last_label = plant_label or self.find_last_label()
         last_gid = (
             self.find_last_gid() if self._config["auto_use_last_gid"] else None
         )
@@ -8054,7 +8088,7 @@ class LabelingWidget(LabelDialog):
                 difficult,
                 kie_linking,
             ) = self.label_dialog.pop_up(
-                text=self.find_last_label(),
+                text=last_label,
                 flags={},
                 group_id=last_gid,
                 description=None,

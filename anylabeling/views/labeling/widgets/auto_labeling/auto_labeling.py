@@ -83,7 +83,42 @@ INSTANCE_SEGMENTATION_MODEL_TYPES = frozenset(
 )
 
 # Output is always polygons, so the output selector is never shown.
-ALWAYS_HIDDEN_WIDGETS = frozenset({"output_label", "output_select_combobox"})
+ALWAYS_HIDDEN_WIDGETS = frozenset(
+    {
+        "output_label",
+        "output_select_combobox",
+        # X-SimpleLabeling: AMD (auto mask decode) and AMG (segment
+        # everything) are hidden. Remove them here to show them again.
+        "button_auto_decode",
+        "button_segment_everything",
+    }
+)
+
+# X-SimpleLabeling: SAM prompt button colors.
+SAM_ADD_COLOR = "#2E9E44"  # green: "Point +" text, Finish background
+SAM_ADD_HOVER = "#278A3B"
+SAM_REMOVE_COLOR = "#E53935"  # red: "Point -" text, Clear background
+SAM_REMOVE_HOVER = "#C62828"
+
+
+def _with_text_color(style, color):
+    return style + f"""
+        QPushButton {{ color: {color}; font-weight: bold; }}
+    """
+
+
+def _solid_button_style(color, hover):
+    return get_normal_button_style() + f"""
+        QPushButton {{
+            color: white;
+            font-weight: bold;
+            border: none;
+            background-color: {color};
+        }}
+        QPushButton:hover {{ background-color: {hover}; }}
+        QPushButton:pressed {{ background-color: {hover}; }}
+        QPushButton:disabled {{ background-color: {color}; color: #EEEEEE; }}
+    """
 
 
 def update_model_selection_scroll_area_height(scroll_area):
@@ -391,6 +426,10 @@ class AutoLabelingWidget(QWidget):
         self.button_cropping.setText(self.tr("TinyObj"))
         self.button_cropping.setStyleSheet(get_normal_button_style())
         self.button_cropping.clicked.connect(self.on_cropping_toggled)
+        # X-SimpleLabeling: TinyObj is on by default (synced to each newly
+        # loaded model in on_new_model_loaded).
+        self.button_cropping.setChecked(True)
+        self.on_cropping_toggled()
         self.button_cropping.setToolTip(
             self.tr(
                 "Enable local cropping for rectangle prompts to improve accuracy "
@@ -520,21 +559,33 @@ class AutoLabelingWidget(QWidget):
             return f"{base} ({shortcut})"
         return base
 
+    def _with_point_sign(self, text, sign):
+        """X-SimpleLabeling: "Point (q)" -> "Point + (q)" (idempotent)."""
+        base, shortcut = self._split_label_and_shortcut(text)
+        base = f"{base.rstrip('+- ')} {sign}"
+        return f"{base} ({shortcut})" if shortcut else base
+
     def update_shortcut_button_texts(self, shortcuts=None):
         if shortcuts is None:
             shortcuts = self.parent._config.get("shortcuts", {})
         self.button_add_point.setText(
-            self._format_button_with_shortcut(
-                self.button_add_point.text(),
-                shortcuts.get("auto_labeling_add_point"),
-                "q",
+            self._with_point_sign(
+                self._format_button_with_shortcut(
+                    self.button_add_point.text(),
+                    shortcuts.get("auto_labeling_add_point"),
+                    "q",
+                ),
+                "+",
             )
         )
         self.button_remove_point.setText(
-            self._format_button_with_shortcut(
-                self.button_remove_point.text(),
-                shortcuts.get("auto_labeling_remove_point"),
-                "e",
+            self._with_point_sign(
+                self._format_button_with_shortcut(
+                    self.button_remove_point.text(),
+                    shortcuts.get("auto_labeling_remove_point"),
+                    "e",
+                ),
+                "-",
             )
         )
         self.button_clear.setText(
@@ -983,12 +1034,29 @@ class AutoLabelingWidget(QWidget):
             self.button_finish_object,
         ]:
             button.setStyleSheet(get_normal_button_style())
+        # X-SimpleLabeling: green "Point +" text, red "Point -" text,
+        # green Finish button, red Clear button.
+        self.button_add_point.setStyleSheet(
+            _with_text_color(get_normal_button_style(), SAM_ADD_COLOR)
+        )
+        self.button_remove_point.setStyleSheet(
+            _with_text_color(get_normal_button_style(), SAM_REMOVE_COLOR)
+        )
+        self.button_finish_object.setStyleSheet(
+            _solid_button_style(SAM_ADD_COLOR, SAM_ADD_HOVER)
+        )
+        self.button_clear.setStyleSheet(
+            _solid_button_style(SAM_REMOVE_COLOR, SAM_REMOVE_HOVER)
+        )
         if self.auto_labeling_mode == AutoLabelingMode.NONE:
             return
         if self.auto_labeling_mode.edit_mode == AutoLabelingMode.ADD:
             if self.auto_labeling_mode.shape_type == AutoLabelingMode.POINT:
                 self.button_add_point.setStyleSheet(
-                    get_toggle_button_style(button_color="#90EE90")
+                    _with_text_color(
+                        get_toggle_button_style(button_color="#90EE90"),
+                        "#1B5E20",
+                    )
                 )
             elif (
                 self.auto_labeling_mode.shape_type
@@ -1003,7 +1071,10 @@ class AutoLabelingWidget(QWidget):
         elif self.auto_labeling_mode.edit_mode == AutoLabelingMode.REMOVE:
             if self.auto_labeling_mode.shape_type == AutoLabelingMode.POINT:
                 self.button_remove_point.setStyleSheet(
-                    get_toggle_button_style(button_color="#FFB6C1")
+                    _with_text_color(
+                        get_toggle_button_style(button_color="#FFB6C1"),
+                        "#B71C1C",
+                    )
                 )
             elif (
                 self.auto_labeling_mode.shape_type
@@ -1180,6 +1251,10 @@ class AutoLabelingWidget(QWidget):
     def on_new_model_loaded(self, model_config):
         """Enable model select combobox"""
         self.model_selection_button.setEnabled(True)
+
+        # Models start with cropping off; apply the TinyObj button state.
+        if model_config:
+            self.cropping_mode_changed.emit(self.button_cropping.isChecked())
 
         # Reset controls to initial values when the model changes
         try:
